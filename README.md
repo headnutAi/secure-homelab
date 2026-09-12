@@ -25,7 +25,6 @@ Self-hosted Cloud-Homelab mit Security-Fokus – Praxisprojekt für Cloud Securi
 
 Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, statt sie nur in Tutorials zu lesen – mit dem Ziel, mich für eine Rolle als Cloud Security Engineer vorzubereiten.
 
-## Was wurde umgesetzt
 
 ## Was wurde umgesetzt
 
