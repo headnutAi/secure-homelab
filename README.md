@@ -1,6 +1,8 @@
-# [Projektname, z.B. "Secure Homelab"]
+# Secure-Homelab
 
-> [Ein-Satz-Pitch: was das Projekt ist und wofür es gebaut wurde, z.B. "Self-hosted Cloud-Homelab mit Security-Fokus – Praxisprojekt für Cloud Security Engineering"]
+Self-hosted Cloud-Homelab mit Security-Fokus – Praxisprojekt für Cloud Security Engineering
+
+> 🚧 **Work in Progress** – dieses Projekt entsteht aktuell, README wird laufend aktualisiert
 
 ## Tech-Stack
 
@@ -16,33 +18,49 @@
 ## Architektur
 
 <!-- Diagramm hier einbinden, z.B. mit Excalidraw oder draw.io erstellt -->
-![Architektur](docs/architecture.png)
 
-[Kurz erklären, was das Diagramm zeigt: wie hängen PC, Docker/k3s, Tailscale und Monitoring zusammen?]
+
 
 ## Motivation
 
-[Warum hast du das Projekt gebaut? Bezug zu deinem Ziel Cloud Security Engineer herstellen]
+Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, statt sie nur in Tutorials zu lesen – mit dem Ziel, mich für eine Rolle als Cloud Security Engineer vorzubereiten.
+
+## Was wurde umgesetzt
 
 ## Was wurde umgesetzt
 
 ### Infrastruktur
-- [ ] [z.B. Ubuntu Server auf altem PC installiert]
-- [ ] [z.B. Docker + Container-Setup]
-- [ ] [z.B. k3s-Cluster mit ... Services]
+- [ ] Ubuntu Server (headless) auf dem PC installiert, inkl. OpenSSH
+- [ ] System aktuell gehalten (apt update/upgrade, ggf. unattended-upgrades)
+- [ ] SSH gehärtet: nur Public-Key-Login, Passwort-Login deaktiviert, Root-Login gesperrt
+- [ ] Firewall (ufw) mit minimal nötigen offenen Ports
+- [ ] fail2ban gegen Brute-Force-Versuche eingerichtet
+
+### Container & Sicherheit
+- [ ] Docker installiert
+- [ ] Container laufen nicht als root (USER-Direktive im Dockerfile)
+- [ ] Images vor dem Start mit Trivy gescannt
+- [ ] k3s-Cluster installiert
+- [ ] RBAC-Rollen statt Standard-Admin-Zugriff konfiguriert
+- [ ] NetworkPolicies zwischen Pods eingerichtet
 
 ### Infrastructure as Code
-- [ ] [z.B. Terraform für Docker-Ressourcen]
-- [ ] [Was wird dadurch automatisiert?]
+- [ ] Terraform installiert
+- [ ] Docker-Provider für Terraform eingerichtet
+- [ ] main.tf mit provider/docker_image/docker_container geschrieben
+- [ ] Secrets/Variablen in .tfvars ausgelagert statt im Code
+- [ ] .tfstate und .tfvars in .gitignore eingetragen
 
 ### Netzwerk & Zugriff
-- [ ] [z.B. Tailscale für Remote-Zugriff ohne Portfreigabe]
-- [ ] [ACL-Regeln, falls konfiguriert]
+- [ ] Tailscale auf dem Server installiert und verbunden
+- [ ] Tailscale auf Endgeräten (Laptop/Handy) eingerichtet
+- [ ] ACLs in der Tailscale-Admin-Konsole konfiguriert
 
-### Monitoring
-- [ ] [z.B. Prometheus + Grafana Dashboards]
-- [ ] [Loki für zentrales Logging]
-
+### Monitoring & Logging
+- [ ] Prometheus + Grafana installiert
+- [ ] Loki für zentrales Logging eingerichtet
+- [ ] auditd auf dem Host aktiviert
+- [ ] Dashboards für Server-/Cluster-Zustand erstellt
 ## Security-Entscheidungen
 
 <!-- Dieser Abschnitt ist für eine Security-Engineer-Bewerbung der wichtigste Teil.
@@ -50,34 +68,28 @@
 
 | Entscheidung | Begründung |
 |---|---|
-| [z.B. SSH nur mit Public-Key] | [z.B. verhindert Brute-Force auf Passwörter] |
-| [z.B. Container laufen nie als root] | [z.B. begrenzt Schaden bei Container-Escape] |
-| [z.B. Secrets in .tfvars statt im Code] | [z.B. verhindert versehentliches Commit von Zugangsdaten] |
-| [...] | [...] |
+| Firewall (ufw) nur mit nötigen Ports offen |  |
+| fail2ban aktiv |  |
+| Tailscale statt Portfreigabe im Router |  |
+| Trivy-Scan vor Container-Start |  |
+| Terraform-State/Secrets nicht im Git |  |
+| RBAC/NetworkPolicies in k3s |  |
 
 ## Angriffssimulation
 
-[Falls umgesetzt: welche verwundbare App wurde getestet, welche Angriffe simuliert, wurden sie im Monitoring erkannt?]
 
 ## Lessons Learned
 
-- [Was hat nicht auf Anhieb funktioniert?]
-- [Was würdest du beim nächsten Mal anders machen?]
-- [Welches Konzept hat "Klick" gemacht?]
+
 
 ## Screenshots
 
 <!-- z.B. Grafana-Dashboard, terraform plan-Output, kubectl get pods -->
-![Screenshot 1](docs/screenshot1.png)
+
 
 ## Setup / Nachbauen
 
-```bash
-# Kurzanleitung, falls jemand das Projekt nachbauen will
-git clone [dein-repo-link]
-cd [projektname]
-# ...
-```
+
 
 ## Nächste Schritte
 
@@ -85,4 +97,4 @@ cd [projektname]
 
 ---
 
-**Kontakt:** [dein Name / LinkedIn / GitHub-Profil-Link]
+**Kontakt:** [Demian.W / https://github.com/headnutAi]
