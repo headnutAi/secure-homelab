@@ -29,9 +29,9 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 ## Was wurde umgesetzt
 
 ### Infrastruktur
-- [ ] Ubuntu Server (headless) auf dem PC installiert, inkl. OpenSSH
-- [ ] System aktuell gehalten (apt update/upgrade, ggf. unattended-upgrades)
-- [ ] SSH gehärtet: nur Public-Key-Login, Passwort-Login deaktiviert, Root-Login gesperrt
+- [x] Ubuntu Server (headless) auf dem PC installiert, inkl. OpenSSH
+- [x] System aktuell gehalten (apt update/upgrade, ggf. unattended-upgrades)
+- [x] SSH gehärtet: nur Public-Key-Login, Passwort-Login deaktiviert, Root-Login gesperrt
 - [ ] Firewall (ufw) mit minimal nötigen offenen Ports
 - [ ] fail2ban gegen Brute-Force-Versuche eingerichtet
 
