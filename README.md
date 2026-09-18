@@ -76,19 +76,19 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 
 ## Angriffssimulation
 
+Work in progress
 
 ## Lessons Learned
 
-
+Work in progress
 
 ## Screenshots
 
-<!-- z.B. Grafana-Dashboard, terraform plan-Output, kubectl get pods -->
-
+Work in progress
 
 ## Setup / Nachbauen
 
-
+Work in progress
 
 ## Nächste Schritte
 
