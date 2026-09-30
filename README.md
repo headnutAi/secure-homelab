@@ -67,9 +67,15 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 
 | Entscheidung | Begründung |
 |---|---|
-| Firewall (ufw) nur mit nötigen Ports offen |  |
-| fail2ban aktiv |  |
-| Tailscale statt Portfreigabe im Router |  |
+| Firewall (ufw) nur mit nötigen Ports offen | Jeder offene Port ist eine potenzielle Angriffsfläche. Default-Policy deny incoming, nur Port 22 freigegeben. |
+| fail2ban aktiv | Sperrt IPs nach wiederholten fehlgeschlagenen Login-Versuchen und unterbindet so Brute-Force-Angriffe. |
+| Tailscale statt Portfreigabe im Router | Verschlüsselte Peer-to-Peer-Verbindung (WireGuard) zwischen den Geräten. Der Server ist aus dem öffentlichen Internet nicht erreichbar. |
+| SSH nur mit Public-Key, Passwort-Login deaktiviert | Keys lassen sich nicht per Brute-Force erraten.  |
+| Root-Login gesperrt | root existiert auf jedem System und ist ein bekanntes Angriffsziel. Admin-Aktionen laufen über sudo und bleiben nachvollziehbar. |
+| Tailscale-ACLs statt Standard-Freigabe | Standardmäßig darf jedes Gerät jedes andere erreichen. Die ACL erlaubt nur Admin-Zugriff auf tag:server an Port 22 (Least Privilege) |
+| Automatisierte ACL-Tests | Jede Policy-Änderung wird beim Speichern gegen definierte Erwartungen geprüft – verhindert versehentliche Fehlkonfiguration. |
+| Device Approval aktiviert | Neue Geräte müssen manuell freigegeben werden. Zweite Kontrollebene, falls der Account kompromittiert wird. |
+| Tailscale SSH bewusst nicht aktiviert | Authentifizierung bleibt bei den eigenen SSH-Keys, statt sie an einen Drittanbieter abzugeben. |
 | Trivy-Scan vor Container-Start |  |
 | Terraform-State/Secrets nicht im Git |  |
 | RBAC/NetworkPolicies in k3s |  |
