@@ -51,9 +51,9 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 - [ ] .tfstate und .tfvars in .gitignore eingetragen
 
 ### Netzwerk & Zugriff
-- [ ] Tailscale auf dem Server installiert und verbunden
-- [ ] Tailscale auf Endgeräten (Laptop/Handy) eingerichtet
-- [ ] ACLs in der Tailscale-Admin-Konsole konfiguriert
+- [x] Tailscale auf dem Server installiert und verbunden
+- [x] Tailscale auf Endgeräten (Laptop/Handy) eingerichtet
+- [x] ACLs in der Tailscale-Admin-Konsole konfiguriert
 
 ### Monitoring & Logging
 - [ ] Prometheus + Grafana installiert
