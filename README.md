@@ -36,9 +36,9 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 - [x] fail2ban gegen Brute-Force-Versuche eingerichtet
 
 ### Container & Sicherheit
-- [ ] Docker installiert
-- [ ] Container laufen nicht als root (USER-Direktive im Dockerfile)
-- [ ] Images vor dem Start mit Trivy gescannt
+- [x] Docker installiert
+- [x] Container laufen nicht als root (USER-Direktive im Dockerfile)
+- [x] Images vor dem Start mit Trivy gescannt
 - [ ] k3s-Cluster installiert
 - [ ] RBAC-Rollen statt Standard-Admin-Zugriff konfiguriert
 - [ ] NetworkPolicies zwischen Pods eingerichtet
