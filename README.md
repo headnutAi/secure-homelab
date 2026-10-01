@@ -44,11 +44,11 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 - [ ] NetworkPolicies zwischen Pods eingerichtet
 
 ### Infrastructure as Code
-- [ ] Terraform installiert
-- [ ] Docker-Provider für Terraform eingerichtet
-- [ ] main.tf mit provider/docker_image/docker_container geschrieben
-- [ ] Secrets/Variablen in .tfvars ausgelagert statt im Code
-- [ ] .tfstate und .tfvars in .gitignore eingetragen
+- [x] Terraform installiert
+- [x] Docker-Provider für Terraform eingerichtet
+- [x] main.tf mit provider/docker_image/docker_container geschrieben
+- [x] Secrets/Variablen in .tfvars ausgelagert statt im Code
+- [x] .tfstate und .tfvars in .gitignore eingetragen
 
 ### Netzwerk & Zugriff
 - [x] Tailscale auf dem Server installiert und verbunden
@@ -76,9 +76,17 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 | Automatisierte ACL-Tests | Jede Policy-Änderung wird beim Speichern gegen definierte Erwartungen geprüft – verhindert versehentliche Fehlkonfiguration. |
 | Device Approval aktiviert | Neue Geräte müssen manuell freigegeben werden. Zweite Kontrollebene, falls der Account kompromittiert wird. |
 | Tailscale SSH bewusst nicht aktiviert | Authentifizierung bleibt bei den eigenen SSH-Keys, statt sie an einen Drittanbieter abzugeben. |
+| Kein User in der docker-Gruppe | Gruppenmitglieder können über Container das Host-Dateisystem mounten und so root-Rechte erlangen – ohne sudo-Protokollierung. Docker wird bewusst nur über sudo genutzt. |
+| Alpine-basierte Images statt Debian-Standard | Vergleichsscan mit Trivy: nginx:latest (145 Pakete) zeigt 390 bekannte Schwachstellen, nginx:alpine (71 Pakete) nur 2. Weniger installierte Software bedeutet weniger Angriffsfläche. |
+| Images vor dem Einsatz mit Trivy gescannt | Jeder Container erbt alle Schwachstellen seines Images. Ein Scan zeigte auch Lücken mit Status fixed – Images veralten still, auch wenn der Tag gleich bleibt. |
+| nginxinc/nginx-unprivileged statt Standard-nginx | Der Standard-nginx läuft als root im Container. Wird eine Lücke ausgenutzt, hat der Angreifer sofort root-Rechte und ist einem Container-Ausbruch deutlich näher. |
+| read_only = true mit tmpfs für /var/cache/nginx und /run | Verhindert, dass Schadcode im Container abgelegt wird. Nur die Pfade, die nginx tatsächlich braucht, sind beschreibbar – und liegen im RAM, sind also nach einem Neustart weg. |
+| no-new-privileges:true | Prozesse können über SetUID-Binaries keine zusätzlichen Rechte erlangen. Begrenzt den Schaden bei einer Kompromittierung. |
+| Variablen in variables.tf / terraform.tfvars ausgelagert | Konfiguration vom Code getrennt. Bei Secrets bewusst ohne default, damit ein vergessener Wert nicht still durch einen Standardwert ersetzt wird. |
 | Trivy-Scan vor Container-Start |  |
 | Terraform-State/Secrets nicht im Git |  |
 | RBAC/NetworkPolicies in k3s |  |
+
 
 ## Angriffssimulation
 
@@ -90,7 +98,27 @@ Work in progress
 
 ## Screenshots
 
-Work in progress
+Trivy Sicherheitsscan von dem nginx image mit der alpine
+
+<img width="1692" height="703" alt="trivyAlpineScan" src="https://github.com/user-attachments/assets/d20ec430-ae42-42df-b972-d13a4f7d5d54" />
+
+---
+
+Unterschied zwischen debian und alpine 
+
+<img width="537" height="148" alt="Screenshot 2026-10-01 124837" src="https://github.com/user-attachments/assets/97c183fa-775e-4175-8b56-aea979e587ab" />
+
+<img width="651" height="141" alt="Screenshot 2026-10-01 124820" src="https://github.com/user-attachments/assets/2b825f57-e2c1-44e3-9f68-eba042bada6d" />
+
+Vergleich der Basis-Images: nginx:latest (Debian, 145 Pakete) → 390 bekannte Schwachstellen. nginx:alpine (71 Pakete) → 2. Gleicher Webserver, deutlich kleinere Angriffsfläche.
+
+---
+
+Nachweis, dass das Container-Dateisystem schreibgeschützt ist
+
+<img width="666" height="40" alt="Screenshot 2026-10-01 141904" src="https://github.com/user-attachments/assets/ef2b93e3-5e48-4a98-a2ad-698222ebb3d6" />
+
+---
 
 ## Setup / Nachbauen
 
