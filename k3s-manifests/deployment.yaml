@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-frontend
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        fsGroup: 101
+
+      containers:
+      - name: nginx
+        image: nginxinc/nginx-unprivileged:alpine
+        ports:
+        - containerPort: 8080
+
+        securityContext:
+         readOnlyRootFilesystem: true
+         allowPrivilegeEscalation: false
+         capabilities:
+           drop:
+           - ALL
+        volumeMounts:
+        - name: writeallowed
+          mountPath: /tmp
+      automountServiceAccountToken: false
+
+      volumes:
+      - name: writeallowed
+        emptyDir:
+          medium: Memory

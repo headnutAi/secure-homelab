@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-isolation
+  namespace: default
+spec:
+  # Bestimmt, auf welche Pods diese Policy angewendet wird
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+  - Ingress
+  # Definiert die Whitelist für eingehenden Datenverkehr
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          role: client              # welche Pods dürfen
+    ports:
+    - protocol: TCP
+      port: 8080           # auf welchen Port
