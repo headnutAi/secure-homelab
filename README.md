@@ -17,11 +17,10 @@ Self-hosted Cloud-Homelab mit Security-Fokus – Praxisprojekt für Cloud Securi
 ![Gitleaks](https://img.shields.io/badge/Gitleaks-Secret%20Scan-red)
 
 
-<!-- Weitere Badges nach Bedarf: https://shields.io -->
+
 
 ## Architektur
 
-<!-- Diagramm hier einbinden, z.B. mit Excalidraw oder draw.io erstellt -->
 
 
 
@@ -41,10 +40,10 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 
 ### Container & Sicherheit
 - [x] Docker installiert
-- [x] Container laufen nicht als root (USER-Direktive im Dockerfile)
+- [x] Container laufen nicht als root (unprivilegiertes Image + securityContext)
 - [x] Images vor dem Start mit Trivy gescannt
 - [x] k3s-Cluster installiert
-- [x] RBAC-Rollen statt Standard-Admin-Zugriff konfiguriert
+- [x] ServiceAccount-Token für Pods ohne API-Bedarf deaktiviert
 - [x] NetworkPolicies zwischen Pods eingerichtet
 
 ### Infrastructure as Code
@@ -59,16 +58,21 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 - [x] Tailscale auf Endgeräten (Laptop/Handy) eingerichtet
 - [x] ACLs in der Tailscale-Admin-Konsole konfiguriert
 
+### CI / Security-Scanning
+- [x] GitHub Actions Workflow für das Repo eingerichtet
+- [x] terraform fmt -check und terraform validate bei jedem Push
+- [ ] tfsec oder Checkov zur Prüfung der Terraform-Konfiguration
+- [ ] Trivy als Action für automatisierte Image-Scans
+- [ ] Gitleaks zur Erkennung versehentlich committeter Secrets
+
 ### Monitoring & Logging
-Aufgrund von Hardware beschränkungen erstmal gestoppt, stattdessen CI
+Vorerst zurückgestellt: Das BIOS gibt nur 4 der 8 GB RAM frei, der kube-prometheus-stack hat den Cluster unter Speicherdruck gesetzt. Stattdessen Fokus auf CI-Security-Scanning, das keine lokalen Ressourcen benötigt.
 - [ ] Prometheus + Grafana installiert
 - [ ] Loki für zentrales Logging eingerichtet
 - [ ] auditd auf dem Host aktiviert
 - [ ] Dashboards für Server-/Cluster-Zustand erstellt
-## Security-Entscheidungen
 
-<!-- Dieser Abschnitt ist für eine Security-Engineer-Bewerbung der wichtigste Teil.
-     Nicht nur WAS du gemacht hast, sondern WARUM. -->
+## Security-Entscheidungen
 
 | Entscheidung | Begründung |
 |---|---|
