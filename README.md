@@ -88,10 +88,6 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 | automountServiceAccountToken: false | nginx braucht die Kubernetes-API nicht. Ohne Token findet ein kompromittierter Container keinen Clusterzugang. |
 
 
-## Angriffssimulation
-
-Work in progress
-
 ## Lessons Learned
 
 Docker umgeht die Firewall
@@ -193,16 +189,6 @@ Die Worker-Prozesse starten sauber, obwohl das Root-Dateisystem read-only ist. B
 Der Versuch, eine Datei im Container anzulegen, scheitert. Damit kann auch ein Angreifer keinen Schadcode ablegen.
 
 <img width="1047" height="57" alt="Screenshot 2026-10-04 164954" src="https://github.com/user-attachments/assets/29106d88-7403-48c7-9f8e-45c41569ae4b" />
-
----
-
-## Setup / Nachbauen
-
-Work in progress
-
-## Nächste Schritte
-
-- [ ] [Was ist noch geplant / ausbaufähig?]
 
 ---
 
