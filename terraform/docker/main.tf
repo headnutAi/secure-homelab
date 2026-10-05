@@ -16,23 +16,23 @@ resource "docker_image" "nginx_webserver" {
 }
 
 resource "docker_container" "wcloudv1" {
-    image = docker_image.nginx_webserver.image_id
-    name  = "webserver"
-    
-    ports {
-            ip = "100.74.26.7"
-            internal = 8080
-            external = var.external_port
-        }
+  image = docker_image.nginx_webserver.image_id
+  name  = "webserver"
 
-    tmpfs = {
-        "/var/cache/nginx" = ""
-        "/run" = ""
-        "/tmp" = ""
-        
-    }
+  ports {
+    ip       = "100.74.26.7"
+    internal = 8080
+    external = var.external_port
+  }
 
-    security_opts = [ "no-new-privileges:true" ]
+  tmpfs = {
+    "/var/cache/nginx" = ""
+    "/run"             = ""
+    "/tmp"             = ""
 
-    read_only = true  
+  }
+
+  security_opts = ["no-new-privileges:true"]
+
+  read_only = true
 }

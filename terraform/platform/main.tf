@@ -14,11 +14,11 @@ provider "helm" {
 }
 
 resource "helm_release" "prometheus" {
-  name       = "prometheusv1"
-  repository = "https://prometheus-community.github.io/helm-charts"
-  chart      = "kube-prometheus-stack"
-  version    = "91.9.0"
+  name             = "prometheusv1"
+  repository       = "https://prometheus-community.github.io/helm-charts"
+  chart            = "kube-prometheus-stack"
+  version          = "91.9.0"
   create_namespace = true
-  namespace  = "monitoring"
-  
+  namespace        = "monitoring"
+
 }
