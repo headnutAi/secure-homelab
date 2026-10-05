@@ -11,9 +11,11 @@ Self-hosted Cloud-Homelab mit Security-Fokus – Praxisprojekt für Cloud Securi
 ![Terraform](https://img.shields.io/badge/Terraform-844FBA?logo=terraform&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/k3s-326CE5?logo=kubernetes&logoColor=white)
 ![Tailscale](https://img.shields.io/badge/Tailscale-242424?logo=tailscale&logoColor=white)
-![Grafana](https://img.shields.io/badge/Grafana-F46800?logo=grafana&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
 ![Trivy](https://img.shields.io/badge/Trivy-1904DA?logo=aqua&logoColor=white)
-![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white)
+![tfsec](https://img.shields.io/badge/tfsec-Security%20Scan-blue)
+![Gitleaks](https://img.shields.io/badge/Gitleaks-Secret%20Scan-red)
+
 
 <!-- Weitere Badges nach Bedarf: https://shields.io -->
 
@@ -58,6 +60,7 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 - [x] ACLs in der Tailscale-Admin-Konsole konfiguriert
 
 ### Monitoring & Logging
+Aufgrund von Hardware beschränkungen erstmal gestoppt, stattdessen CI
 - [ ] Prometheus + Grafana installiert
 - [ ] Loki für zentrales Logging eingerichtet
 - [ ] auditd auf dem Host aktiviert
