@@ -95,6 +95,8 @@ Vorerst zurückgestellt: Das BIOS gibt nur 4 der 8 GB RAM frei, der kube-prometh
 | securityContext mit runAsNonRoot, allowPrivilegeEscalation: false und capabilities: drop ALL| Mehrere unabhängige Schutzebenen: Der Container läuft nicht als root, kann keine Dateien ablegen, keine Rechte über SetUID erlangen und hat keine der standardmäßig vergebenen Linux-Capabilities. Jede Ebene unterbricht einen anderen Schritt einer Angriffskette. |
 | NetworkPolicy mit Default-Deny und gezielter Freigabe | Standardmäßig darf jeder Pod jeden erreichen. Zugriff jetzt nur noch für Pods mit passendem Label. |
 | automountServiceAccountToken: false | nginx braucht die Kubernetes-API nicht. Ohne Token findet ein kompromittierter Container keinen Clusterzugang. |
+| Egress-Regel, nur DNS erlaubt | Verhindert Nachladen von Schadcode, Datenabfluss und Ausbreitung im Cluster, falls der Container kompromittiert wird. |
+| Erlaubte Systemaufrufe (Syscalls) eines Containers eingeschränkt durch seccomp| Blockiert gefährliche Systemaufrufe wie z.B. das Laden von Kernel-Modulen erstmal nur für einen Pod nicht für den ganzen Namespace|
 
 
 ## Lessons Learned
