@@ -123,9 +123,6 @@ Das BIOS gibt nur 2,7 von 8 GB RAM frei, dazu reserviert der Kernel 320 MB für 
 Zugriffskontrolle kostet Bequemlichkeit
 Jeder neue Dienst braucht eine bewusste Freigabe: in ufw, in der Tailscale-ACL, in der NetworkPolicy. Das fühlt sich zunächst umständlich an und ist genau der Punkt – wer alles offen lässt, erspart sich die Entscheidung und verliert die Kontrolle.
 
-Impliziter Schutz ist kein dokumentierter Schutz
-Die Prüfung ergab ein aktives seccomp-Profil, obwohl keins konfiguriert war – containerd setzt es von sich aus. Ändert sich die Voreinstellung, fällt der Schutz weg, ohne dass es auffällt. Deshalb explizit setzen, auch wenn es scheinbar nichts ändert.
-
 Egress ist der vergessene Teil der Segmentierung
 Ingress schreiben fast alle, Egress kaum jemand. Dabei ist das die Richtung, die Datenabfluss und Ausbreitung nach einem Einbruch verhindert. Stolperstein: Blockiert man alles, scheitert schon die Namensauflösung – und der Fehler sieht nach einem Verbindungsproblem aus.
 
