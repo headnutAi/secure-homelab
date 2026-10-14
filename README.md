@@ -99,6 +99,7 @@ Vorerst zurückgestellt: Das BIOS gibt nur 4 der 8 GB RAM frei, der kube-prometh
 | Erlaubte Systemaufrufe (Syscalls) eines Containers eingeschränkt durch seccomp| Blockiert gefährliche Systemaufrufe wie z.B. das Laden von Kernel-Modulen erstmal nur für einen Pod nicht für den ganzen Namespace|
 | tfsec in der CI-Pipeline | Findet unsichere Terraform-Konfigurationen im Pull Request statt in der Produktion (Shift Left). |
 | Täglicher Trivy-Scan, CRITICAL bricht die Pipeline ab | Images veralten still, auch wenn der Tag gleich bleibt. Kritische Funde erzwingen eine Reaktion, hohe werden nur berichtet, da sie bei fremden Images meist nicht selbst behebbar sind. |
+| Gitleaks scannt die gesamte Git-Historie | Ein committetes Secret bleibt über den Commit-Hash abrufbar, auch nach dem Löschen der Datei. .gitignore allein schützt nur vor neuen Commits. |
 
 
 ## Lessons Learned
