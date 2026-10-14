@@ -1,0 +1,25 @@
+name: trivy image scan
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  push:
+    branches: [main]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: trivy scan high
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: nginxinc/nginx-unprivileged:alpine
+          severity: HIGH
+          exit-code: '0'
+      - name: trivy scan critical
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: nginxinc/nginx-unprivileged:alpine
+          severity: CRITICAL
+          exit-code: '1'
