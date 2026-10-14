@@ -62,7 +62,7 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 - [x] GitHub Actions Workflow für das Repo eingerichtet
 - [x] terraform fmt -check und terraform validate bei jedem Push
 - [x] tfsec oder Checkov zur Prüfung der Terraform-Konfiguration
-- [ ] Trivy als Action für automatisierte Image-Scans
+- [x] Trivy als Action für automatisierte Image-Scans
 - [ ] Gitleaks zur Erkennung versehentlich committeter Secrets
 
 ### Monitoring & Logging
@@ -98,6 +98,7 @@ Vorerst zurückgestellt: Das BIOS gibt nur 4 der 8 GB RAM frei, der kube-prometh
 | Egress-Regel, nur DNS erlaubt | Verhindert Nachladen von Schadcode, Datenabfluss und Ausbreitung im Cluster, falls der Container kompromittiert wird. |
 | Erlaubte Systemaufrufe (Syscalls) eines Containers eingeschränkt durch seccomp| Blockiert gefährliche Systemaufrufe wie z.B. das Laden von Kernel-Modulen erstmal nur für einen Pod nicht für den ganzen Namespace|
 | tfsec in der CI-Pipeline | Findet unsichere Terraform-Konfigurationen im Pull Request statt in der Produktion (Shift Left). |
+| Täglicher Trivy-Scan, CRITICAL bricht die Pipeline ab | Images veralten still, auch wenn der Tag gleich bleibt. Kritische Funde erzwingen eine Reaktion, hohe werden nur berichtet, da sie bei fremden Images meist nicht selbst behebbar sind. |
 
 
 ## Lessons Learned
