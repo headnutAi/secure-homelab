@@ -61,7 +61,7 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 ### CI / Security-Scanning
 - [x] GitHub Actions Workflow für das Repo eingerichtet
 - [x] terraform fmt -check und terraform validate bei jedem Push
-- [ ] tfsec oder Checkov zur Prüfung der Terraform-Konfiguration
+- [x] tfsec oder Checkov zur Prüfung der Terraform-Konfiguration
 - [ ] Trivy als Action für automatisierte Image-Scans
 - [ ] Gitleaks zur Erkennung versehentlich committeter Secrets
 
@@ -97,6 +97,7 @@ Vorerst zurückgestellt: Das BIOS gibt nur 4 der 8 GB RAM frei, der kube-prometh
 | automountServiceAccountToken: false | nginx braucht die Kubernetes-API nicht. Ohne Token findet ein kompromittierter Container keinen Clusterzugang. |
 | Egress-Regel, nur DNS erlaubt | Verhindert Nachladen von Schadcode, Datenabfluss und Ausbreitung im Cluster, falls der Container kompromittiert wird. |
 | Erlaubte Systemaufrufe (Syscalls) eines Containers eingeschränkt durch seccomp| Blockiert gefährliche Systemaufrufe wie z.B. das Laden von Kernel-Modulen erstmal nur für einen Pod nicht für den ganzen Namespace|
+| tfsec in der CI-Pipeline | Findet unsichere Terraform-Konfigurationen im Pull Request statt in der Produktion (Shift Left). |
 
 
 ## Lessons Learned
@@ -121,6 +122,9 @@ Das BIOS gibt nur 2,7 von 8 GB RAM frei, dazu reserviert der Kernel 320 MB für 
 
 Zugriffskontrolle kostet Bequemlichkeit
 Jeder neue Dienst braucht eine bewusste Freigabe: in ufw, in der Tailscale-ACL, in der NetworkPolicy. Das fühlt sich zunächst umständlich an und ist genau der Punkt – wer alles offen lässt, erspart sich die Entscheidung und verliert die Kontrolle.
+
+Egress ist der vergessene Teil der Segmentierung
+Ingress schreiben fast alle, Egress kaum jemand. Dabei ist das die Richtung, die Datenabfluss und Ausbreitung nach einem Einbruch verhindert. Stolperstein: Blockiert man alles, scheitert schon die Namensauflösung – und der Fehler sieht nach einem Verbindungsproblem aus.
 
 ## Screenshots
 
