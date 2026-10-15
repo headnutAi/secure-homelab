@@ -63,7 +63,7 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 - [x] terraform fmt -check und terraform validate bei jedem Push
 - [x] tfsec oder Checkov zur Prüfung der Terraform-Konfiguration
 - [x] Trivy als Action für automatisierte Image-Scans
-- [ ] Gitleaks zur Erkennung versehentlich committeter Secrets
+- [x] Gitleaks zur Erkennung versehentlich committeter Secrets
 
 ### Monitoring & Logging
 Vorerst zurückgestellt: Das BIOS gibt nur 4 der 8 GB RAM frei, der kube-prometheus-stack hat den Cluster unter Speicherdruck gesetzt. Stattdessen Fokus auf CI-Security-Scanning, das keine lokalen Ressourcen benötigt.
