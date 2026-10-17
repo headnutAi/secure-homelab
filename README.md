@@ -15,6 +15,8 @@ Self-hosted Cloud-Homelab mit Security-Fokus – Praxisprojekt für Cloud Securi
 ![Trivy](https://img.shields.io/badge/Trivy-1904DA?logo=aqua&logoColor=white)
 ![tfsec](https://img.shields.io/badge/tfsec-Security%20Scan-blue)
 ![Gitleaks](https://img.shields.io/badge/Gitleaks-Secret%20Scan-red)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Monitor%20API-009688?logo=fastapi&logoColor=white)
 
 
 
@@ -65,12 +67,15 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 - [x] Trivy als Action für automatisierte Image-Scans
 - [x] Gitleaks zur Erkennung versehentlich committeter Secrets
 
-### Monitoring & Logging
-Vorerst zurückgestellt: Das BIOS gibt nur 4 der 8 GB RAM frei, der kube-prometheus-stack hat den Cluster unter Speicherdruck gesetzt. Stattdessen Fokus auf CI-Security-Scanning, das keine lokalen Ressourcen benötigt.
-- [ ] Prometheus + Grafana installiert
-- [ ] Loki für zentrales Logging eingerichtet
-- [ ] auditd auf dem Host aktiviert
-- [ ] Dashboards für Server-/Cluster-Zustand erstellt
+### Eigener Monitoring-Agent (homelab-monitor)
+- [x] Collector als Deployment im Cluster, mit demselben securityContext wie der nginx-Pod
+- [x] API-Key-Authentifizierung über `X-API-Key`, Vergleich mit `secrets.compare_digest`
+- [x] API-Key als Kubernetes Secret, per `secretKeyRef` als Umgebungsvariable in den Pod
+- [x] OpenAPI-Schema und Swagger-UI in Produktion deaktiviert, per Umgebungsvariable zuschaltbar
+- [x] Service von NodePort auf ClusterIP umgestellt, kein offener Port mehr im Heimnetz
+- [x] Zugriff über `tailscale serve` mit gültigem Let's-Encrypt-Zertifikat auf dem `.ts.net`-Namen
+- [x] Tailscale-ACL um den Serve-Port erweitert, NodePort per ACL-Test ausgeschlossen
+- [ ] NetworkPolicy für den Monitor-Pod (Ingress + Egress), analog zum nginx-Pod
 
 ## Security-Entscheidungen
 
@@ -100,6 +105,12 @@ Vorerst zurückgestellt: Das BIOS gibt nur 4 der 8 GB RAM frei, der kube-prometh
 | tfsec in der CI-Pipeline | Findet unsichere Terraform-Konfigurationen im Pull Request statt in der Produktion (Shift Left). |
 | Täglicher Trivy-Scan, CRITICAL bricht die Pipeline ab | Images veralten still, auch wenn der Tag gleich bleibt. Kritische Funde erzwingen eine Reaktion, hohe werden nur berichtet, da sie bei fremden Images meist nicht selbst behebbar sind. |
 | Gitleaks scannt die gesamte Git-Historie | Ein committetes Secret bleibt über den Commit-Hash abrufbar, auch nach dem Löschen der Datei. .gitignore allein schützt nur vor neuen Commits. |
+| Monitor über ClusterIP + `tailscale serve` statt NodePort | NodePort lauscht auf allen Interfaces des Nodes und ist damit für jedes Gerät im Heimnetz erreichbar, auch für Gäste und IoT. ClusterIP nimmt den Dienst aus dem LAN, der Zugriff läuft über denselben Weg wie SSH. |
+| API-Key zusätzlich zur Netzwerkbeschränkung | Zwei unabhängige Ebenen: Wer nicht im Tailnet ist, kommt nicht an den Dienst. Wer im Tailnet ist, braucht trotzdem einen Schlüssel. Ein kompromittiertes Gerät im Tailnet hat damit nicht automatisch Zugriff auf alles. |
+| OpenAPI-Schema und Swagger-UI in Produktion deaktiviert | Das Schema nennt jeden Endpoint, die erwartete Authentifizierungsmethode und den Header-Namen. Das ist eine Bauanleitung für Angreifer und kostet nichts, sie wegzulassen. Default ist "aus", die Docs müssen aktiv eingeschaltet werden. |
+| `secrets.compare_digest` statt `==` beim Key-Vergleich | Ein normaler String-Vergleich bricht beim ersten falschen Zeichen ab, die Antwortzeit verrät damit, wie viele Zeichen stimmen. `compare_digest` braucht immer gleich lange. Im Heimnetz kaum ausnutzbar, aber der richtige Reflex. |
+| API-Key als Kubernetes Secret, nicht als Datei im Image | Ein Key im Image liegt in jeder Kopie des Images und ist über `docker history` auslesbar. Als Secret lässt er sich rotieren, ohne das Image neu zu bauen. |
+| `tailscale serve` statt `funnel` | `serve` macht den Dienst nur im eigenen Tailnet erreichbar, `funnel` würde ihn ins öffentliche Internet stellen. Die Befehle sehen fast gleich aus, der Unterschied ist erheblich. |
 
 
 ## Lessons Learned
@@ -127,6 +138,14 @@ Jeder neue Dienst braucht eine bewusste Freigabe: in ufw, in der Tailscale-ACL, 
 
 Egress ist der vergessene Teil der Segmentierung
 Ingress schreiben fast alle, Egress kaum jemand. Dabei ist das die Richtung, die Datenabfluss und Ausbreitung nach einem Einbruch verhindert. Stolperstein: Blockiert man alles, scheitert schon die Namensauflösung – und der Fehler sieht nach einem Verbindungsproblem aus.
+
+NodePort ist ein Entwicklungswerkzeug, kein Betriebsmodus Der Collector war über 192.168.1.8:31111 aus dem gesamten Heimnetz erreichbar, weil NodePort beim Entwickeln der schnellste Weg war, um zu sehen ob der Dienst antwortet. Danach blieb er stehen. Dasselbe Muster wie bei der Docker-Portfreigabe weiter oben, nur eine Ebene höher. In Cloud-Umgebungen ist das die Security Group mit 0.0.0.0/0, die "nur kurz zum Debuggen" entstand. Der Unterschied zwischen einem funktionierenden und einem sicheren Setup ist meistens nicht Wissen, sondern Aufräumen.
+
+Authentifizierung ersetzt keine Netzwerkbeschränkung Der Dienst gab auf /metrics korrekt "not authenticated" zurück, war aber trotzdem zu offen: /docs, /redoc und /openapi.json lieferten ohne jede Prüfung das komplette API-Schema inklusive Header-Namen der Authentifizierung. Dazu lief alles über HTTP, der Key wäre also im WLAN mitlesbar gewesen. Gefunden durch systematisches Abklappern der üblichen Pfade statt durch Vertrauen in den einen geprüften Endpoint.
+
+Der Server erreicht sich selbst nicht über seinen Tailscale-Namen Vom Handy funktionierte der Zugriff, vom Server selbst nicht. Ursache: k3s bedient LoadBalancer-Services über svclb-Pods, die Port 80 und 443 per DNAT-Regel abfangen, nicht über einen sichtbaren Listener. Solche Regeln greifen auch für lokal erzeugte Pakete an die Tailscale-Adresse. Traffic von Peers läuft dagegen durch den WireGuard-Tunnel und wird von tailscaled im Userspace direkt zugestellt, also an der Regel vorbei. Kein Fehler im Setup, aber ein Verhalten, das man einmal verstanden haben muss, sonst sucht man an der falschen Stelle.
+
+Secrets landen in der Shell-History Ein curl -H "X-API-Key: ..." steht danach in ~/.bash_history. Konsequenz: Keys über Umgebungsvariablen übergeben, und Befehle mit Geheimnissen mit einem führenden Leerzeichen eingeben, damit sie je nach HISTCONTROL gar nicht erst aufgezeichnet werden.
 
 ## Screenshots
 
