@@ -20,11 +20,14 @@ Self-hosted Cloud-Homelab mit Security-Fokus – Praxisprojekt für Cloud Securi
 
 
 
-
 ## Architektur
 
+Ein Ubuntu-Server im Heimnetz, auf dem ein k3s-Cluster läuft. Zugriff von außen
+ausschließlich über Tailscale (WireGuard), keine Portfreigabe im Router. Im Cluster
+laufen ein gehärteter nginx-Container und ein selbst geschriebener Monitoring-Collector,
+beide als ClusterIP-Services ohne Erreichbarkeit aus dem Heimnetz.
 
-
+_Diagramm folgt._
 
 ## Motivation
 
@@ -68,6 +71,9 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 - [x] Gitleaks zur Erkennung versehentlich committeter Secrets
 
 ### Eigener Monitoring-Agent (homelab-monitor)
+
+Ein selbst geschriebener Metrik-Collector (FastAPI), der als Pod im k3s-Cluster läuft und ausschließlich über das Tailnet erreichbar ist. Quellcode: [homelab-monitor](https://github.com/headnutAi/homelab_monitor)
+
 - [x] Collector als Deployment im Cluster, mit demselben securityContext wie der nginx-Pod
 - [x] API-Key-Authentifizierung über `X-API-Key`, Vergleich mit `secrets.compare_digest`
 - [x] API-Key als Kubernetes Secret, per `secretKeyRef` als Umgebungsvariable in den Pod
@@ -81,12 +87,12 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 
 | Entscheidung | Begründung |
 |---|---|
-| Firewall (ufw) nur mit nötigen Ports offen | Jeder offene Port ist eine potenzielle Angriffsfläche. Default-Policy deny incoming, nur Port 22,80 und 443 freigegeben. |
+| Firewall (ufw) nur mit nötigen Ports offen | Jeder offene Port ist eine potenzielle Angriffsfläche. Default-Policy deny incoming, nur Port 22 freigegeben. |
 | fail2ban aktiv | Sperrt IPs nach wiederholten fehlgeschlagenen Login-Versuchen und unterbindet so Brute-Force-Angriffe. |
 | Tailscale statt Portfreigabe im Router | Verschlüsselte Peer-to-Peer-Verbindung (WireGuard) zwischen den Geräten. Der Server ist aus dem öffentlichen Internet nicht erreichbar. |
 | SSH nur mit Public-Key, Passwort-Login deaktiviert | Keys lassen sich nicht per Brute-Force erraten.  |
 | Root-Login gesperrt | root existiert auf jedem System und ist ein bekanntes Angriffsziel. Admin-Aktionen laufen über sudo und bleiben nachvollziehbar. |
-| Tailscale-ACLs statt Standard-Freigabe | Standardmäßig darf jedes Gerät jedes andere erreichen. Die ACL erlaubt nur Admin-Zugriff auf tag:server an Port 22 (Least Privilege) |
+| Tailscale-ACLs statt Standard-Freigabe | Standardmäßig darf jedes Gerät jedes andere auf allen Ports erreichen. Die ACL erlaubt nur Zugriff auf `tag:server`, und dort nur Port 22 für SSH und 443 für den Monitor über `tailscale serve` (Least Privilege). Eine Freigabe auf 8081 stammte von einem Dienst, der inzwischen umgezogen ist, und wurde entfernt. |
 | Automatisierte ACL-Tests | Jede Policy-Änderung wird beim Speichern gegen definierte Erwartungen geprüft – verhindert versehentliche Fehlkonfiguration. |
 | Device Approval aktiviert | Neue Geräte müssen manuell freigegeben werden. Zweite Kontrollebene, falls der Account kompromittiert wird. |
 | Tailscale SSH bewusst nicht aktiviert | Authentifizierung bleibt bei den eigenen SSH-Keys, statt sie an einen Drittanbieter abzugeben. |
@@ -109,8 +115,9 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 | API-Key zusätzlich zur Netzwerkbeschränkung | Zwei unabhängige Ebenen: Wer nicht im Tailnet ist, kommt nicht an den Dienst. Wer im Tailnet ist, braucht trotzdem einen Schlüssel. Ein kompromittiertes Gerät im Tailnet hat damit nicht automatisch Zugriff auf alles. |
 | OpenAPI-Schema und Swagger-UI in Produktion deaktiviert | Das Schema nennt jeden Endpoint, die erwartete Authentifizierungsmethode und den Header-Namen. Das ist eine Bauanleitung für Angreifer und kostet nichts, sie wegzulassen. Default ist "aus", die Docs müssen aktiv eingeschaltet werden. |
 | `secrets.compare_digest` statt `==` beim Key-Vergleich | Ein normaler String-Vergleich bricht beim ersten falschen Zeichen ab, die Antwortzeit verrät damit, wie viele Zeichen stimmen. `compare_digest` braucht immer gleich lange. Im Heimnetz kaum ausnutzbar, aber der richtige Reflex. |
-| API-Key als Kubernetes Secret, nicht als Datei im Image | Ein Key im Image liegt in jeder Kopie des Images und ist über `docker history` auslesbar. Als Secret lässt er sich rotieren, ohne das Image neu zu bauen. |
+| API-Key als Kubernetes Secret, nicht als Datei im Image | Ein Key im Image liegt in jeder Kopie davon und ist über `docker history` auslesbar. Als Secret lässt er sich rotieren, ohne das Image neu zu bauen. Secrets sind dabei nur base64-kodiert, nicht verschlüsselt – der Gewinn liegt in Trennung und Rotierbarkeit, nicht in Kryptografie. |
 | `tailscale serve` statt `funnel` | `serve` macht den Dienst nur im eigenen Tailnet erreichbar, `funnel` würde ihn ins öffentliche Internet stellen. Die Befehle sehen fast gleich aus, der Unterschied ist erheblich. |
+| Mitgelieferten Ingress-Controller (Traefik) deaktiviert | k3s installiert Traefik standardmäßig mit, ohne dass man ihn anfordert. Ohne ein einziges Ingress-Objekt belegte er Port 80 und 443 auf allen Interfaces und war damit aus dem Heimnetz erreichbar. Deaktiviert per `--disable=traefik`, weil der Zugriff über Tailscale läuft. Ein ungenutzter Dienst ist Angriffsfläche plus Patch-Aufwand ohne Gegenwert, die installierte Version war bereits zwei Releases hinterher. |
 
 
 ## Lessons Learned
@@ -146,6 +153,8 @@ Authentifizierung ersetzt keine Netzwerkbeschränkung Der Dienst gab auf /metric
 Der Server erreicht sich selbst nicht über seinen Tailscale-Namen Vom Handy funktionierte der Zugriff, vom Server selbst nicht. Ursache: k3s bedient LoadBalancer-Services über svclb-Pods, die Port 80 und 443 per DNAT-Regel abfangen, nicht über einen sichtbaren Listener. Solche Regeln greifen auch für lokal erzeugte Pakete an die Tailscale-Adresse. Traffic von Peers läuft dagegen durch den WireGuard-Tunnel und wird von tailscaled im Userspace direkt zugestellt, also an der Regel vorbei. Kein Fehler im Setup, aber ein Verhalten, das man einmal verstanden haben muss, sonst sucht man an der falschen Stelle.
 
 Secrets landen in der Shell-History Ein curl -H "X-API-Key: ..." steht danach in ~/.bash_history. Konsequenz: Keys über Umgebungsvariablen übergeben, und Befehle mit Geheimnissen mit einem führenden Leerzeichen eingeben, damit sie je nach HISTCONTROL gar nicht erst aufgezeichnet werden.
+
+k3s bringt Traefik als Ingress-Controller mit. Er lief seit der Installation, belegte Port 80 und 443 auf allen Interfaces und hatte nichts zu tun, weil nie ein Ingress-Objekt angelegt wurde. Aufgefallen erst bei einer Bestandsaufnahme mit `ss -tlnp` statt `ufw status`. Dasselbe Muster wie bei Docker weiter oben: Die eigene Konfiguration sieht sauber aus, die tatsächlich offenen Ports stehen woanders. Die ehrliche Antwort auf "was ist offen" liefert nicht die Firewall-Konfiguration, sondern die Liste der lauschenden Sockets, und der Gegentest von einem anderen Gerät aus.
 
 ## Screenshots
 
@@ -228,4 +237,4 @@ Der Versuch, eine Datei im Container anzulegen, scheitert. Damit kann auch ein A
 
 ---
 
-**Kontakt:** [Demian.W / https://github.com/headnutAi]
+**Kontakt:** Demian W. · [github.com/headnutAi](https://github.com/headnutAi)
