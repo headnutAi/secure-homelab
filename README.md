@@ -81,7 +81,7 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 
 | Entscheidung | Begründung |
 |---|---|
-| Firewall (ufw) nur mit nötigen Ports offen | Jeder offene Port ist eine potenzielle Angriffsfläche. Default-Policy deny incoming, nur Port 22 freigegeben. |
+| Firewall (ufw) nur mit nötigen Ports offen | Jeder offene Port ist eine potenzielle Angriffsfläche. Default-Policy deny incoming, nur Port 22,80 und 443 freigegeben. |
 | fail2ban aktiv | Sperrt IPs nach wiederholten fehlgeschlagenen Login-Versuchen und unterbindet so Brute-Force-Angriffe. |
 | Tailscale statt Portfreigabe im Router | Verschlüsselte Peer-to-Peer-Verbindung (WireGuard) zwischen den Geräten. Der Server ist aus dem öffentlichen Internet nicht erreichbar. |
 | SSH nur mit Public-Key, Passwort-Login deaktiviert | Keys lassen sich nicht per Brute-Force erraten.  |
