@@ -27,7 +27,27 @@ ausschließlich über Tailscale (WireGuard), keine Portfreigabe im Router. Im Cl
 laufen ein gehärteter nginx-Container und ein selbst geschriebener Monitoring-Collector,
 beide als ClusterIP-Services ohne Erreichbarkeit aus dem Heimnetz.
 
-_Diagramm folgt._
+```mermaid
+flowchart LR
+    subgraph host["Ubuntu-Server (Homelab)"]
+        os["System-Metriken<br/>CPU / RAM / Disk"]
+        agent["monitor-agent<br/>Python + psutil"]
+        os --> agent
+    end
+
+    subgraph backend["Backend"]
+        api["API<br/>FastAPI"]
+        store[("SQLite")]
+        api --> store
+    end
+
+    subgraph client["Client"]
+        dash["Dashboard<br/>Browser"]
+    end
+
+    agent -->|"POST /metrics, alle 10s"| api
+    dash -->|"GET /metrics/latest"| api
+```
 
 ## Motivation
 
