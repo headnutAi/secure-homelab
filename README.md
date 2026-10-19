@@ -31,22 +31,16 @@ beide als ClusterIP-Services ohne Erreichbarkeit aus dem Heimnetz.
 flowchart LR
     subgraph host["Ubuntu-Server (Homelab)"]
         os["System-Metriken<br/>CPU / RAM / Disk"]
-        agent["monitor-agent<br/>Python + psutil"]
-        os --> agent
+        agent["monitor-agent<br/>psutil"]
+        api["FastAPI"]
+        os --> agent --> api
     end
 
-    subgraph backend["Backend"]
-        api["API<br/>FastAPI"]
-        store[("SQLite")]
-        api --> store
-    end
+    curl["curl<br/>Terminal"] -->|"GET /metrics<br/>X-API-Key"| api
 
-    subgraph client["Client"]
-        dash["Dashboard<br/>Browser"]
-    end
+    dash["Dashboard"] -.->|geplant| api
 
-    agent -->|"POST /metrics, alle 10s"| api
-    dash -->|"GET /metrics/latest"| api
+    style dash stroke-dasharray: 5 5
 ```
 
 ## Motivation
