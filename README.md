@@ -212,7 +212,7 @@ Neben dem eigenen nginx-service ist der cluster-interne kubernetes-Service zu se
 
 Legt die gewünschte Anzahl an Pods fest (replicas: 1) und enthält sämtliche Härtungsmaßnahmen: nicht-root-Benutzer, keine Privilege Escalation und das Entfernen aller Linux-Capabilities.
 
-<img width="784" height="664" alt="Screenshot 2026-10-03 120012" src="https://github.com/user-attachments/assets/15e60ab8-3179-44a9-82b0-d22aa4dc63ed" />
+<img width="734" height="855" alt="image" src="https://github.com/user-attachments/assets/b9d35983-81f2-4875-862d-3e64a91ef204" />
 
 ---
 
