@@ -184,7 +184,7 @@ k3s bringt Traefik als Ingress-Controller mit. Er lief seit der Installation, be
 
 Trivy Sicherheitsscan von dem nginx image mit der alpine
 
-<img width="1692" height="703" alt="trivyAlpineScan" src="https://github.com/user-attachments/assets/d20ec430-ae42-42df-b972-d13a4f7d5d54" />
+<img width="1553" height="765" alt="image" src="https://github.com/user-attachments/assets/e3f762fa-6e53-4169-ade3-2e9b2bdd6262" />
 
 ---
 
@@ -206,7 +206,7 @@ Nachweis, dass das Container-Dateisystem schreibgeschützt ist
 
 Neben dem eigenen nginx-service ist der cluster-interne kubernetes-Service zu sehen, über den die API erreichbar ist. Beide vom Typ ClusterIP, also nur innerhalb des Clusters ansprechbar.
 
-<img width="689" height="81" alt="Screenshot 2026-10-03 115900" src="https://github.com/user-attachments/assets/864a0370-e85f-4554-95c2-d8cdbb6117dd" />
+<img width="735" height="97" alt="image" src="https://github.com/user-attachments/assets/efc87899-f010-46a4-9b51-a50d9b2173f2" />
 
 ---
 
@@ -236,7 +236,7 @@ Nachher:
 
 In Kubernetes darf standardmäßig jeder Pod jeden anderen erreichen. Die Policy kehrt das um: Eingehender Verkehr ist blockiert, erlaubt sind nur Pods mit dem Label role: client auf Port 8080.
 
-<img width="800" height="508" alt="Screenshot 2026-10-04 162611" src="https://github.com/user-attachments/assets/424ffdda-4661-4820-b661-e2ab41339795" />
+<img width="956" height="690" alt="image" src="https://github.com/user-attachments/assets/578366ad-7840-4e28-afa2-f48c213c7c4b" />
 
 Nachweis mit zwei identischen Anfragen, die sich nur im Label des aufrufenden Pods unterscheiden:
 
