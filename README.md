@@ -22,30 +22,35 @@ Self-hosted Cloud-Homelab mit Security-Fokus – Praxisprojekt für Cloud Securi
 
 ## Architektur
 
-Ein Ubuntu-Server im Heimnetz, auf dem ein k3s-Cluster läuft. Zugriff von außen
-ausschließlich über Tailscale (WireGuard), keine Portfreigabe im Router. Im Cluster
-laufen ein gehärteter nginx-Container und ein selbst geschriebener Monitoring-Collector,
-beide als ClusterIP-Services ohne Erreichbarkeit aus dem Heimnetz.
+Ein Ubuntu-Server im Heimnetz betreibt einen k3s-Cluster. Der Router hat keine Portfreigabe, der Zugriff von außen läuft ausschließlich über das Tailnet (Tailscale, WireGuard). Tailscale Serve terminiert TLS auf dem Host mit einem Zertifikat für den .ts.net-Namen und gibt genau einen Endpunkt frei: /metrics. Alles andere ist nur auf der Node selbst erreichbar, per SSH und curl oder über kubectl port-forward.
+
+Im Cluster laufen zwei Workloads. Ein gehärteter nginx-Container als Testaufbau und ein selbst geschriebener Monitoring-Agent auf Basis von FastAPI, der CPU-, RAM- und Disk-Werte des Servers ausliest und über eine API-Key-geschützte API bereitstellt. Beide Services sind vom Typ ClusterIP und damit aus dem Heimnetz nicht direkt ansprechbar. Der Code des Agents liegt im separaten Repo [https://github.com/headnutAi/homelab_monitor].
+
+Zusätzlich zur Abschottung nach außen ist der Verkehr innerhalb des Clusters eingeschränkt: Eine NetworkPolicy regelt für nginx sowohl eingehende als auch ausgehende Verbindungen. Der Egress-Teil ist dabei der wichtigere, denn er begrenzt, wohin ein kompromittierter Pod überhaupt Verbindungen aufbauen könnte.
 
 ```mermaid
 flowchart LR
-    client["Client<br/>Laptop / Handy<br/>im Tailnet"]
+    client["Client<br/>Browser im Tailnet"]
 
     subgraph home["Heimnetz &#40;keine Portfreigabe im Router&#41;"]
         subgraph host["Ubuntu-Server"]
-            ts["tailscaled<br/>WireGuard"]
+            ts["tailscaled + Serve<br/>TLS, nur /metrics"]
+            ssh["SSH-Session<br/>auf der Node"]
 
             subgraph k3s["k3s-Cluster"]
-                nginx["nginx<br/>gehärtet &#124; ClusterIP"]
-                mon["monitor-agent<br/>FastAPI &#124; ClusterIP"]
+                subgraph np["NetworkPolicy: Ingress + Egress"]
+                    nginx["nginx &#40;Test&#41;<br/>ClusterIP"]
+                end
+                mon["monitor-agent<br/>FastAPI &#124; ClusterIP<br/>&#40;keine Policy&#41;"]
             end
 
-            ts --> nginx
-            ts --> mon
+            ts -->|"/metrics"| mon
+            ssh -.->|"curl, nur lokal"| nginx
         end
     end
 
-    client -->|"Tailscale"| ts
+    client -->|"HTTPS via WireGuard"| ts
+    client -.->|"SSH via Tailscale"| ssh
 ```
 
 ## Motivation
