@@ -238,9 +238,9 @@ In Kubernetes darf standardmäßig jeder Pod jeden anderen erreichen. Die Policy
 
 <img width="956" height="690" alt="image" src="https://github.com/user-attachments/assets/578366ad-7840-4e28-afa2-f48c213c7c4b" />
 
-Nachweis mit zwei identischen Anfragen, die sich nur im Label des aufrufenden Pods unterscheiden:
+Beide Anfragen sind identisch und unterscheiden sich nur im Label des aufrufenden Pods. Ohne role: client wird die Verbindung abgewiesen, mit Label kommt sie durch. Die Policy greift also wie vorgesehen für alle Pods mit app: frontend.
 
-Ohne Label – Zeitüberschreitung:
+Die Meldung lautet “Connection refused” und nicht wie erwartet ein Timeout. Grund: Der in k3s mitgelieferte NetworkPolicy-Controller lehnt per REJECT mit icmp-port-unreachable ab, statt Pakete still zu verwerfen.
 
 <img width="1096" height="134" alt="Screenshot 2026-10-04 162506" src="https://github.com/user-attachments/assets/a97b1a41-fd1c-4c2c-8025-a0dc444b68c5" />
 
