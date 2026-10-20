@@ -29,28 +29,23 @@ beide als ClusterIP-Services ohne Erreichbarkeit aus dem Heimnetz.
 
 ```mermaid
 flowchart LR
-    subgraph host["Ubuntu-Server (k3s Node)"]
-        proc["/proc, /sys<br/>Host-Metriken"]
-        curl["curl<br/>Terminal auf dem Server"]
+    client["Client<br/>Laptop / Handy<br/>im Tailnet"]
 
-        subgraph k3s["k3s-Cluster"]
-            svc["Service<br/>type: ClusterIP"]
+    subgraph home["Heimnetz &#40;keine Portfreigabe im Router&#41;"]
+        subgraph host["Ubuntu-Server"]
+            ts["tailscaled<br/>WireGuard"]
 
-            subgraph pod["Pod &#40;Deployment: monitor-agent&#41;"]
-                api["api.py<br/>FastAPI"]
-                col["collector.py<br/>psutil"]
-                api -->|"collect_metrics&#40;&#41;"| col
+            subgraph k3s["k3s-Cluster"]
+                nginx["nginx<br/>gehärtet &#124; ClusterIP"]
+                mon["monitor-agent<br/>FastAPI &#124; ClusterIP"]
             end
 
-            svc --> api
+            ts --> nginx
+            ts --> mon
         end
-
-        proc -. "hostPath fehlt noch" .-> col
-        curl -->|"GET /metrics<br/>X-API-Key"| svc
     end
 
-    tar["monitor.tar"] -.->|"ctr images import"| pod
-    dash["Dashboard<br/>&#40;geplant&#41;"] -.->|"erreicht ClusterIP nicht"| svc
+    client -->|"Tailscale"| ts
 ```
 
 ## Motivation
