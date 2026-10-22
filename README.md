@@ -55,7 +55,7 @@ flowchart LR
 
 ## Motivation
 
-Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, statt sie nur in Tutorials zu lesen – mit dem Ziel, mich für eine Rolle als Cloud Security Engineer vorzubereiten.
+Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, statt sie nur in Tutorials zu lesen – mit dem Ziel, mich für eine Rolle in diesem Bereich vorzubereiten.
 
 
 ## Was wurde umgesetzt
