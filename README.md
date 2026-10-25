@@ -15,18 +15,47 @@ Self-hosted Cloud-Homelab mit Security-Fokus – Praxisprojekt für Cloud Securi
 ![Trivy](https://img.shields.io/badge/Trivy-1904DA?logo=aqua&logoColor=white)
 ![tfsec](https://img.shields.io/badge/tfsec-Security%20Scan-blue)
 ![Gitleaks](https://img.shields.io/badge/Gitleaks-Secret%20Scan-red)
-
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Monitor%20API-009688?logo=fastapi&logoColor=white)
 
 
 
 ## Architektur
 
+Ein Ubuntu-Server im Heimnetz betreibt einen k3s-Cluster. Der Router hat keine Portfreigabe, der Zugriff von außen läuft ausschließlich über das Tailnet (Tailscale, WireGuard). Tailscale Serve terminiert TLS auf dem Host mit einem Zertifikat für den .ts.net-Namen und gibt genau einen Endpunkt frei: /metrics. Alles andere ist nur auf der Node selbst erreichbar, per SSH und curl oder über kubectl port-forward.
 
+Im Cluster laufen zwei Workloads. Ein gehärteter nginx-Container als Testaufbau und ein selbst geschriebener Monitoring-Agent auf Basis von FastAPI, der CPU-, RAM- und Disk-Werte des Servers ausliest und über eine API-Key-geschützte API bereitstellt. Beide Services sind vom Typ ClusterIP und damit aus dem Heimnetz nicht direkt ansprechbar. Der Code des Agents liegt im separaten Repo [https://github.com/headnutAi/homelab_monitor].
 
+Zusätzlich zur Abschottung nach außen ist der Verkehr innerhalb des Clusters eingeschränkt: Eine NetworkPolicy regelt für nginx sowohl eingehende als auch ausgehende Verbindungen. Der Egress-Teil ist dabei der wichtigere, denn er begrenzt, wohin ein kompromittierter Pod überhaupt Verbindungen aufbauen könnte.
+
+```mermaid
+flowchart LR
+    client["Client<br/>Browser im Tailnet"]
+
+    subgraph home["Heimnetz &#40;keine Portfreigabe im Router&#41;"]
+        subgraph host["Ubuntu-Server"]
+            ts["tailscaled + Serve<br/>TLS, nur /metrics"]
+            ssh["SSH-Session<br/>auf der Node"]
+
+            subgraph k3s["k3s-Cluster"]
+                subgraph np["NetworkPolicy: Ingress + Egress"]
+                    nginx["nginx &#40;Test&#41;<br/>ClusterIP"]
+                end
+                mon["monitor-agent<br/>FastAPI &#124; ClusterIP<br/>&#40;keine Policy&#41;"]
+            end
+
+            ts -->|"/metrics"| mon
+            ssh -.->|"curl, nur lokal"| nginx
+        end
+    end
+
+    client -->|"HTTPS via WireGuard"| ts
+    client -.->|"SSH via Tailscale"| ssh
+```
 
 ## Motivation
 
-Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, statt sie nur in Tutorials zu lesen – mit dem Ziel, mich für eine Rolle als Cloud Security Engineer vorzubereiten.
+Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, statt sie nur in Tutorials zu lesen – mit dem Ziel, mich für eine Rolle in diesem Bereich vorzubereiten.
 
 
 ## Was wurde umgesetzt
@@ -63,25 +92,31 @@ Dieses Projekt entsteht, um Cloud- und Security-Konzepte praktisch zu üben, sta
 - [x] terraform fmt -check und terraform validate bei jedem Push
 - [x] tfsec oder Checkov zur Prüfung der Terraform-Konfiguration
 - [x] Trivy als Action für automatisierte Image-Scans
-- [ ] Gitleaks zur Erkennung versehentlich committeter Secrets
+- [x] Gitleaks zur Erkennung versehentlich committeter Secrets
 
-### Monitoring & Logging
-Vorerst zurückgestellt: Das BIOS gibt nur 4 der 8 GB RAM frei, der kube-prometheus-stack hat den Cluster unter Speicherdruck gesetzt. Stattdessen Fokus auf CI-Security-Scanning, das keine lokalen Ressourcen benötigt.
-- [ ] Prometheus + Grafana installiert
-- [ ] Loki für zentrales Logging eingerichtet
-- [ ] auditd auf dem Host aktiviert
-- [ ] Dashboards für Server-/Cluster-Zustand erstellt
+### Eigener Monitoring-Agent (homelab-monitor)
+
+Ein selbst geschriebener Metrik-Collector (FastAPI), der als Pod im k3s-Cluster läuft und ausschließlich über das Tailnet erreichbar ist. Quellcode: [homelab-monitor](https://github.com/headnutAi/homelab_monitor)
+
+- [x] Collector als Deployment im Cluster, mit demselben securityContext wie der nginx-Pod
+- [x] API-Key-Authentifizierung über `X-API-Key`, Vergleich mit `secrets.compare_digest`
+- [x] API-Key als Kubernetes Secret, per `secretKeyRef` als Umgebungsvariable in den Pod
+- [x] OpenAPI-Schema und Swagger-UI in Produktion deaktiviert, per Umgebungsvariable zuschaltbar
+- [x] Service von NodePort auf ClusterIP umgestellt, kein offener Port mehr im Heimnetz
+- [x] Zugriff über `tailscale serve` mit gültigem Let's-Encrypt-Zertifikat auf dem `.ts.net`-Namen
+- [x] Tailscale-ACL um den Serve-Port erweitert, NodePort per ACL-Test ausgeschlossen
+- [ ] NetworkPolicy für den Monitor-Pod (Ingress + Egress), analog zum nginx-Pod
 
 ## Security-Entscheidungen
 
 | Entscheidung | Begründung |
 |---|---|
-| Firewall (ufw) nur mit nötigen Ports offen | Jeder offene Port ist eine potenzielle Angriffsfläche. Default-Policy deny incoming, nur Port 22 freigegeben. |
+| Firewall (ufw): Default-Deny incoming, einzige Regel ist 22/tcp | Jeder offene Port ist Angriffsfläche. Am LAN-Interface wird alles andere verworfen, nicht abgelehnt, was Port-Scans langsam und unergiebig macht. Der Monitor auf 443 braucht hier keine Regel, weil sein Listener an tailscale0 gebunden ist und das LAN-Interface gar nicht erreicht. Der Monitor auf 443 braucht hier keine Regel, weil er nur im Tailnet lauscht (siehe tailscale serve). |
 | fail2ban aktiv | Sperrt IPs nach wiederholten fehlgeschlagenen Login-Versuchen und unterbindet so Brute-Force-Angriffe. |
 | Tailscale statt Portfreigabe im Router | Verschlüsselte Peer-to-Peer-Verbindung (WireGuard) zwischen den Geräten. Der Server ist aus dem öffentlichen Internet nicht erreichbar. |
 | SSH nur mit Public-Key, Passwort-Login deaktiviert | Keys lassen sich nicht per Brute-Force erraten.  |
 | Root-Login gesperrt | root existiert auf jedem System und ist ein bekanntes Angriffsziel. Admin-Aktionen laufen über sudo und bleiben nachvollziehbar. |
-| Tailscale-ACLs statt Standard-Freigabe | Standardmäßig darf jedes Gerät jedes andere erreichen. Die ACL erlaubt nur Admin-Zugriff auf tag:server an Port 22 (Least Privilege) |
+| Tailscale-ACLs statt Standard-Freigabe | Standardmäßig darf im Tailnet jedes Gerät jedes andere auf allen Ports erreichen. Die ACL erlaubt nur Zugriff auf tag:server, dort Port 22 für SSH und 443 für den Monitor über tailscale serve (Least Privilege). Diese Freigaben gelten innerhalb des Tailnets und sind unabhängig von den ufw-Regeln, die den Zugriff am LAN-Interface regeln. |
 | Automatisierte ACL-Tests | Jede Policy-Änderung wird beim Speichern gegen definierte Erwartungen geprüft – verhindert versehentliche Fehlkonfiguration. |
 | Device Approval aktiviert | Neue Geräte müssen manuell freigegeben werden. Zweite Kontrollebene, falls der Account kompromittiert wird. |
 | Tailscale SSH bewusst nicht aktiviert | Authentifizierung bleibt bei den eigenen SSH-Keys, statt sie an einen Drittanbieter abzugeben. |
@@ -96,9 +131,20 @@ Vorerst zurückgestellt: Das BIOS gibt nur 4 der 8 GB RAM frei, der kube-prometh
 | NetworkPolicy mit Default-Deny und gezielter Freigabe | Standardmäßig darf jeder Pod jeden erreichen. Zugriff jetzt nur noch für Pods mit passendem Label. |
 | automountServiceAccountToken: false | nginx braucht die Kubernetes-API nicht. Ohne Token findet ein kompromittierter Container keinen Clusterzugang. |
 | Egress-Regel, nur DNS erlaubt | Verhindert Nachladen von Schadcode, Datenabfluss und Ausbreitung im Cluster, falls der Container kompromittiert wird. |
-| Erlaubte Systemaufrufe (Syscalls) eines Containers eingeschränkt durch seccomp| Blockiert gefährliche Systemaufrufe wie z.B. das Laden von Kernel-Modulen erstmal nur für einen Pod nicht für den ganzen Namespace|
+| seccomp-Profil RuntimeDefault auf Pod-Ebene für nginx und Monitor | Ohne Angabe läuft ein Container mit dem vollen Syscall-Satz des Kernels. RuntimeDefault nutzt das Profil der Container-Runtime, auf Pod-Ebene gesetzt, damit spätere Container erben. Gilt nur für eigene Manifeste; die k3s-Systempods laufen noch ohne. Geprüft am 25.10.2026 gegen das containerd-Default-Profil (crictl inspect): Default-Aktion ist SCMP_ACT_ERRNO, die Modul-Syscalls (init_module, finit_module, delete_module) sowie mount, pivot_root und kexec_load fehlen in der Allowlist und sind damit blockiert.|
 | tfsec in der CI-Pipeline | Findet unsichere Terraform-Konfigurationen im Pull Request statt in der Produktion (Shift Left). |
 | Täglicher Trivy-Scan, CRITICAL bricht die Pipeline ab | Images veralten still, auch wenn der Tag gleich bleibt. Kritische Funde erzwingen eine Reaktion, hohe werden nur berichtet, da sie bei fremden Images meist nicht selbst behebbar sind. |
+| Gitleaks scannt die gesamte Git-Historie | Ein committetes Secret bleibt über den Commit-Hash abrufbar, auch nach dem Löschen der Datei. .gitignore allein schützt nur vor neuen Commits. |
+| Monitor über ClusterIP + `tailscale serve` statt NodePort | NodePort lauscht auf allen Interfaces des Nodes und ist damit für jedes Gerät im Heimnetz erreichbar, auch für Gäste und IoT. ClusterIP nimmt den Dienst aus dem LAN, der Zugriff läuft über denselben Weg wie SSH. |
+| API-Key zusätzlich zur Netzwerkbeschränkung | Zwei unabhängige Ebenen: Wer nicht im Tailnet ist, kommt nicht an den Dienst. Wer im Tailnet ist, braucht trotzdem einen Schlüssel. Ein kompromittiertes Gerät im Tailnet hat damit nicht automatisch Zugriff auf alles. |
+| OpenAPI-Schema und Swagger-UI in Produktion deaktiviert | Das Schema nennt jeden Endpoint, die erwartete Authentifizierungsmethode und den Header-Namen. Das ist eine Bauanleitung für Angreifer und kostet nichts, sie wegzulassen. Default ist "aus", die Docs müssen aktiv eingeschaltet werden. |
+| `secrets.compare_digest` statt `==` beim Key-Vergleich | Ein normaler String-Vergleich bricht beim ersten falschen Zeichen ab, die Antwortzeit verrät damit, wie viele Zeichen stimmen. `compare_digest` braucht immer gleich lange. Im Heimnetz kaum ausnutzbar, aber der richtige Reflex. |
+| API-Key als Kubernetes Secret, nicht als Datei im Image | Ein Key im Image liegt in jeder Kopie davon und ist über `docker history` auslesbar. Als Secret lässt er sich rotieren, ohne das Image neu zu bauen. Secrets sind dabei nur base64-kodiert, nicht verschlüsselt – der Gewinn liegt in Trennung und Rotierbarkeit, nicht in Kryptografie. |
+| `tailscale serve` statt `funnel` | serve macht den Dienst nur im eigenen Tailnet erreichbar, funnel würde ihn ins öffentliche Internet stellen. Die Befehle sehen fast gleich aus, der Unterschied ist erheblich. serve bindet den Listener dabei ausschließlich an das Tailnet-Interface, der Dienst existiert auf dem LAN-Interface gar nicht (geprüft mit ss -tlnp). Preis: Die Bindung ist eine Eigenschaft von Tailscale, nicht eigene Konfiguration, und kann sich mit einer neuen Version ändern. |
+| Mitgelieferten Ingress-Controller (Traefik) deaktiviert | k3s installiert Traefik standardmäßig mit, ohne dass man ihn anfordert. Ohne ein einziges Ingress-Objekt belegte er Port 80 und 443 auf allen Interfaces und war damit aus dem Heimnetz erreichbar. Deaktiviert per `--disable=traefik`, weil der Zugriff über Tailscale läuft. Ein ungenutzter Dienst ist Angriffsfläche plus Patch-Aufwand ohne Gegenwert, die installierte Version war bereits zwei Releases hinterher. |
+| kubelet (10250) und k3s-API (6443) lauschen auf allen Interfaces, werden aber von ufw am LAN-Interface verworfen | Geprüft am 25.10.2026 von einem LAN-Gerät: beide laufen ins Timeout, Port 22 antwortet als Positivkontrolle. Die UFW-Logs belegen den DROP auf enp3s0. Anders als bei Docker umgeht k3s die ufw-Regeln hier nicht. Preis: Der Schutz hängt allein an der Paketfilterung, der offene Listener bleibt bestehen. Eine Bindung an tailscale0 wie beim Monitor wäre die zweite Ebene und ist offen. |
+| Third-Party-Actions auf vollen Commit-SHA gepinnt, Version als Kommentar dahinter | Tags sind verschiebbar, Major-Tags wie @v4 wandern bei jedem Release ohnehin weiter. Ein SHA ist unveränderlich, damit läuft nachweislich derselbe Code wie beim letzten Lauf. Grenze: Der SHA friert den Code ein, prüft ihn aber nicht. |
+| Dependabot für github-actions und pip, wöchentlich, mit 5 Tagen Cooldown | Gepinnte Versionen veralten still, deshalb der Gegenpart zum SHA-Pinning. Dependabot öffnet pro Update einen PR statt still zu aktualisieren: Die Änderung ist sichtbar, die CI testet sie vorher, und der Merge bleibt eine bewusste Entscheidung. Der Cooldown lässt frische Releases reifen, weil fehlerhafte oder kompromittierte Versionen meist innerhalb weniger Tage auffallen. |
 
 
 ## Lessons Learned
@@ -127,11 +173,23 @@ Jeder neue Dienst braucht eine bewusste Freigabe: in ufw, in der Tailscale-ACL, 
 Egress ist der vergessene Teil der Segmentierung
 Ingress schreiben fast alle, Egress kaum jemand. Dabei ist das die Richtung, die Datenabfluss und Ausbreitung nach einem Einbruch verhindert. Stolperstein: Blockiert man alles, scheitert schon die Namensauflösung – und der Fehler sieht nach einem Verbindungsproblem aus.
 
+NodePort ist ein Entwicklungswerkzeug, kein Betriebsmodus Der Collector war über 192.168.1.8:31111 aus dem gesamten Heimnetz erreichbar, weil NodePort beim Entwickeln der schnellste Weg war, um zu sehen ob der Dienst antwortet. Danach blieb er stehen. Dasselbe Muster wie bei der Docker-Portfreigabe weiter oben, nur eine Ebene höher. In Cloud-Umgebungen ist das die Security Group mit 0.0.0.0/0, die "nur kurz zum Debuggen" entstand. Der Unterschied zwischen einem funktionierenden und einem sicheren Setup ist meistens nicht Wissen, sondern Aufräumen.
+
+Authentifizierung ersetzt keine Netzwerkbeschränkung Der Dienst gab auf /metrics korrekt "not authenticated" zurück, war aber trotzdem zu offen: /docs, /redoc und /openapi.json lieferten ohne jede Prüfung das komplette API-Schema inklusive Header-Namen der Authentifizierung. Dazu lief alles über HTTP, der Key wäre also im WLAN mitlesbar gewesen. Gefunden durch systematisches Abklappern der üblichen Pfade statt durch Vertrauen in den einen geprüften Endpoint.
+
+Der Server erreicht sich selbst nicht über seinen Tailscale-Namen Vom Handy funktionierte der Zugriff, vom Server selbst nicht. Ursache: k3s bedient LoadBalancer-Services über svclb-Pods, die Port 80 und 443 per DNAT-Regel abfangen, nicht über einen sichtbaren Listener. Solche Regeln greifen auch für lokal erzeugte Pakete an die Tailscale-Adresse. Traffic von Peers läuft dagegen durch den WireGuard-Tunnel und wird von tailscaled im Userspace direkt zugestellt, also an der Regel vorbei. Kein Fehler im Setup, aber ein Verhalten, das man einmal verstanden haben muss, sonst sucht man an der falschen Stelle.
+
+Secrets landen in der Shell-History Ein curl -H "X-API-Key: ..." steht danach in ~/.bash_history. Konsequenz: Keys über Umgebungsvariablen übergeben, und Befehle mit Geheimnissen mit einem führenden Leerzeichen eingeben, damit sie je nach HISTCONTROL gar nicht erst aufgezeichnet werden.
+
+k3s bringt Traefik als Ingress-Controller mit. Er lief seit der Installation, belegte Port 80 und 443 auf allen Interfaces und hatte nichts zu tun, weil nie ein Ingress-Objekt angelegt wurde. Aufgefallen erst bei einer Bestandsaufnahme mit `ss -tlnp` statt `ufw status`. Dasselbe Muster wie bei Docker weiter oben: Die eigene Konfiguration sieht sauber aus, die tatsächlich offenen Ports stehen woanders. Die ehrliche Antwort auf "was ist offen" liefert nicht die Firewall-Konfiguration, sondern die Liste der lauschenden Sockets, und der Gegentest von einem anderen Gerät aus.
+
+Ein Image im containerd-Namespace default existiert für k3s nicht – ctr image import legt ohne -n k8s.io im falschen Namespace ab. k3s sucht ausschließlich in k8s.io, findet nichts und fällt auf die Registry zurück. Die Fehlermeldung zeigt dann auf docker.io/library/<name> und klingt nach einem Berechtigungsproblem bei Docker Hub, obwohl das Image lokal längst vorliegt. Gegenprobe ist crictl images: Was dort nicht auftaucht, kann k3s nicht starten.
+
 ## Screenshots
 
 Trivy Sicherheitsscan von dem nginx image mit der alpine
 
-<img width="1692" height="703" alt="trivyAlpineScan" src="https://github.com/user-attachments/assets/d20ec430-ae42-42df-b972-d13a4f7d5d54" />
+<img width="1553" height="765" alt="image" src="https://github.com/user-attachments/assets/e3f762fa-6e53-4169-ade3-2e9b2bdd6262" />
 
 ---
 
@@ -153,13 +211,13 @@ Nachweis, dass das Container-Dateisystem schreibgeschützt ist
 
 Neben dem eigenen nginx-service ist der cluster-interne kubernetes-Service zu sehen, über den die API erreichbar ist. Beide vom Typ ClusterIP, also nur innerhalb des Clusters ansprechbar.
 
-<img width="689" height="81" alt="Screenshot 2026-10-03 115900" src="https://github.com/user-attachments/assets/864a0370-e85f-4554-95c2-d8cdbb6117dd" />
+<img width="735" height="97" alt="image" src="https://github.com/user-attachments/assets/efc87899-f010-46a4-9b51-a50d9b2173f2" />
 
 ---
 
 Legt die gewünschte Anzahl an Pods fest (replicas: 1) und enthält sämtliche Härtungsmaßnahmen: nicht-root-Benutzer, keine Privilege Escalation und das Entfernen aller Linux-Capabilities.
 
-<img width="784" height="664" alt="Screenshot 2026-10-03 120012" src="https://github.com/user-attachments/assets/15e60ab8-3179-44a9-82b0-d22aa4dc63ed" />
+<img width="734" height="855" alt="image" src="https://github.com/user-attachments/assets/b9d35983-81f2-4875-862d-3e64a91ef204" />
 
 ---
 
@@ -183,11 +241,11 @@ Nachher:
 
 In Kubernetes darf standardmäßig jeder Pod jeden anderen erreichen. Die Policy kehrt das um: Eingehender Verkehr ist blockiert, erlaubt sind nur Pods mit dem Label role: client auf Port 8080.
 
-<img width="800" height="508" alt="Screenshot 2026-10-04 162611" src="https://github.com/user-attachments/assets/424ffdda-4661-4820-b661-e2ab41339795" />
+<img width="956" height="690" alt="image" src="https://github.com/user-attachments/assets/578366ad-7840-4e28-afa2-f48c213c7c4b" />
 
-Nachweis mit zwei identischen Anfragen, die sich nur im Label des aufrufenden Pods unterscheiden:
+Beide Anfragen sind identisch und unterscheiden sich nur im Label des aufrufenden Pods. Ohne role: client wird die Verbindung abgewiesen, mit Label kommt sie durch. Die Policy greift also wie vorgesehen für alle Pods mit app: frontend.
 
-Ohne Label – Zeitüberschreitung:
+Die Meldung lautet “Connection refused” und nicht wie erwartet ein Timeout. Grund: Der in k3s mitgelieferte NetworkPolicy-Controller lehnt per REJECT mit icmp-port-unreachable ab, statt Pakete still zu verwerfen.
 
 <img width="1096" height="134" alt="Screenshot 2026-10-04 162506" src="https://github.com/user-attachments/assets/a97b1a41-fd1c-4c2c-8025-a0dc444b68c5" />
 
@@ -208,4 +266,4 @@ Der Versuch, eine Datei im Container anzulegen, scheitert. Damit kann auch ein A
 
 ---
 
-**Kontakt:** [Demian.W / https://github.com/headnutAi]
+**Kontakt:** Demian W. · [github.com/headnutAi](https://github.com/headnutAi)
