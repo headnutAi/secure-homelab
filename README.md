@@ -111,12 +111,12 @@ Ein selbst geschriebener Metrik-Collector (FastAPI), der als Pod im k3s-Cluster 
 
 | Entscheidung | Begründung |
 |---|---|
-| Firewall (ufw) nur mit nötigen Ports offen | Jeder offene Port ist eine potenzielle Angriffsfläche. Default-Policy deny incoming, nur Port 22 freigegeben. |
+| Firewall (ufw): Default-Deny incoming, einzige Regel ist 22/tcp | Jeder offene Port ist Angriffsfläche. Am LAN-Interface wird alles andere verworfen, nicht abgelehnt, was Port-Scans langsam und unergiebig macht. Der Monitor auf 443 braucht hier keine Regel, weil sein Listener an tailscale0 gebunden ist und das LAN-Interface gar nicht erreicht. |
 | fail2ban aktiv | Sperrt IPs nach wiederholten fehlgeschlagenen Login-Versuchen und unterbindet so Brute-Force-Angriffe. |
 | Tailscale statt Portfreigabe im Router | Verschlüsselte Peer-to-Peer-Verbindung (WireGuard) zwischen den Geräten. Der Server ist aus dem öffentlichen Internet nicht erreichbar. |
 | SSH nur mit Public-Key, Passwort-Login deaktiviert | Keys lassen sich nicht per Brute-Force erraten.  |
 | Root-Login gesperrt | root existiert auf jedem System und ist ein bekanntes Angriffsziel. Admin-Aktionen laufen über sudo und bleiben nachvollziehbar. |
-| Tailscale-ACLs statt Standard-Freigabe | Standardmäßig darf jedes Gerät jedes andere auf allen Ports erreichen. Die ACL erlaubt nur Zugriff auf `tag:server`, und dort nur Port 22 für SSH und 443 für den Monitor über `tailscale serve` (Least Privilege). Eine Freigabe auf 8081 stammte von einem Dienst, der inzwischen umgezogen ist, und wurde entfernt. |
+| Tailscale-ACLs statt Standard-Freigabe | Standardmäßig darf im Tailnet jedes Gerät jedes andere auf allen Ports erreichen. Die ACL erlaubt nur Zugriff auf tag:server, dort Port 22 für SSH und 443 für den Monitor über tailscale serve (Least Privilege). Diese Freigaben gelten innerhalb des Tailnets und sind unabhängig von den ufw-Regeln, die den Zugriff am LAN-Interface regeln. |
 | Automatisierte ACL-Tests | Jede Policy-Änderung wird beim Speichern gegen definierte Erwartungen geprüft – verhindert versehentliche Fehlkonfiguration. |
 | Device Approval aktiviert | Neue Geräte müssen manuell freigegeben werden. Zweite Kontrollebene, falls der Account kompromittiert wird. |
 | Tailscale SSH bewusst nicht aktiviert | Authentifizierung bleibt bei den eigenen SSH-Keys, statt sie an einen Drittanbieter abzugeben. |
@@ -142,6 +142,7 @@ Ein selbst geschriebener Metrik-Collector (FastAPI), der als Pod im k3s-Cluster 
 | API-Key als Kubernetes Secret, nicht als Datei im Image | Ein Key im Image liegt in jeder Kopie davon und ist über `docker history` auslesbar. Als Secret lässt er sich rotieren, ohne das Image neu zu bauen. Secrets sind dabei nur base64-kodiert, nicht verschlüsselt – der Gewinn liegt in Trennung und Rotierbarkeit, nicht in Kryptografie. |
 | `tailscale serve` statt `funnel` | `serve` macht den Dienst nur im eigenen Tailnet erreichbar, `funnel` würde ihn ins öffentliche Internet stellen. Die Befehle sehen fast gleich aus, der Unterschied ist erheblich. |
 | Mitgelieferten Ingress-Controller (Traefik) deaktiviert | k3s installiert Traefik standardmäßig mit, ohne dass man ihn anfordert. Ohne ein einziges Ingress-Objekt belegte er Port 80 und 443 auf allen Interfaces und war damit aus dem Heimnetz erreichbar. Deaktiviert per `--disable=traefik`, weil der Zugriff über Tailscale läuft. Ein ungenutzter Dienst ist Angriffsfläche plus Patch-Aufwand ohne Gegenwert, die installierte Version war bereits zwei Releases hinterher. |
+| kubelet (10250) und k3s-API (6443) lauschen auf allen Interfaces, werden aber von ufw am LAN-Interface verworfen | Geprüft am 25.10.2026 von einem LAN-Gerät: beide laufen ins Timeout, Port 22 antwortet als Positivkontrolle. Die UFW-Logs belegen den DROP auf enp3s0. Anders als bei Docker umgeht k3s die ufw-Regeln hier nicht. Preis: Der Schutz hängt allein an der Paketfilterung, der offene Listener bleibt bestehen. Eine Bindung an tailscale0 wie beim Monitor wäre die zweite Ebene und ist offen. |
 
 
 ## Lessons Learned
