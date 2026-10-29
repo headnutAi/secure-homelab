@@ -1,0 +1,4 @@
+vulnerabilities:
+  - id: CVE-2026-111497
+    statement: "Verwundbar ist die brotli-libs. Diese liegt in meinem Image, da sie von dem nginx-Brotli-Modul benutzt wird, welches fehlt wird der verwundbare Code nie ausgeführt. Geprüft am 29.10.2026 mit nginx -V"
+    expired_at: 2026-11-14
