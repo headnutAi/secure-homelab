@@ -116,7 +116,7 @@ Ein selbst geschriebener Metrik-Collector (FastAPI), der als Pod im k3s-Cluster 
 | Tailscale statt Portfreigabe im Router | Verschlüsselte Peer-to-Peer-Verbindung (WireGuard) zwischen den Geräten. Der Server ist aus dem öffentlichen Internet nicht erreichbar. |
 | SSH nur mit Public-Key, Passwort-Login deaktiviert | Keys lassen sich nicht per Brute-Force erraten.  |
 | Root-Login gesperrt | root existiert auf jedem System und ist ein bekanntes Angriffsziel. Admin-Aktionen laufen über sudo und bleiben nachvollziehbar. |
-| Tailscale-ACLs statt Standard-Freigabe | Standardmäßig darf im Tailnet jedes Gerät jedes andere auf allen Ports erreichen. Die ACL erlaubt nur Zugriff auf tag:server, dort Port 22 für SSH und 443 für den Monitor über tailscale serve (Least Privilege). Diese Freigaben gelten innerhalb des Tailnets und sind unabhängig von den ufw-Regeln, die den Zugriff am LAN-Interface regeln. |
+| Tailscale-ACLs statt Standard-Freigabe | Standardmäßig darf im Tailnet jedes Gerät jedes andere auf allen Ports erreichen. Die ACL erlaubt nur tag:server, dort Port 22 und 443 (Least Privilege). Diese Freigaben gelten im Tailnet und sind unabhängig von ufw, das den Zugriff am LAN-Interface regelt. |
 | Automatisierte ACL-Tests | Jede Policy-Änderung wird beim Speichern gegen definierte Erwartungen geprüft – verhindert versehentliche Fehlkonfiguration. |
 | Device Approval aktiviert | Neue Geräte müssen manuell freigegeben werden. Zweite Kontrollebene, falls der Account kompromittiert wird. |
 | Tailscale SSH bewusst nicht aktiviert | Authentifizierung bleibt bei den eigenen SSH-Keys, statt sie an einen Drittanbieter abzugeben. |
@@ -131,7 +131,7 @@ Ein selbst geschriebener Metrik-Collector (FastAPI), der als Pod im k3s-Cluster 
 | NetworkPolicy mit Default-Deny und gezielter Freigabe | Standardmäßig darf jeder Pod jeden erreichen. Zugriff jetzt nur noch für Pods mit passendem Label. |
 | automountServiceAccountToken: false | nginx braucht die Kubernetes-API nicht. Ohne Token findet ein kompromittierter Container keinen Clusterzugang. |
 | Egress-Regel, nur DNS erlaubt | Verhindert Nachladen von Schadcode, Datenabfluss und Ausbreitung im Cluster, falls der Container kompromittiert wird. |
-| seccomp-Profil RuntimeDefault auf Pod-Ebene für nginx und Monitor | Ohne Angabe läuft ein Container mit dem vollen Syscall-Satz des Kernels. RuntimeDefault nutzt das Profil der Container-Runtime, auf Pod-Ebene gesetzt, damit spätere Container erben. Gilt nur für eigene Manifeste; die k3s-Systempods laufen noch ohne. Geprüft am 25.10.2026 gegen das containerd-Default-Profil (crictl inspect): Default-Aktion ist SCMP_ACT_ERRNO, die Modul-Syscalls (init_module, finit_module, delete_module) sowie mount, pivot_root und kexec_load fehlen in der Allowlist und sind damit blockiert.|
+| seccomp-Profil RuntimeDefault auf Pod-Ebene für nginx und Monitor | Ohne Angabe läuft ein Container mit dem vollen Syscall-Satz des Kernels. RuntimeDefault nutzt das Allowlist-Profil der Container-Runtime, auf Pod-Ebene gesetzt, damit spätere Container erben. Geprüft am 25.10.2026 mit crictl inspect: init_module, mount und pivot_root fehlen in der Liste. Gilt nur für eigene Manifeste, die k3s-Systempods laufen ohne.|
 | tfsec in der CI-Pipeline | Findet unsichere Terraform-Konfigurationen im Pull Request statt in der Produktion (Shift Left). |
 | Täglicher Trivy-Scan, CRITICAL bricht die Pipeline ab | Images veralten still, auch wenn der Tag gleich bleibt. Kritische Funde erzwingen eine Reaktion, hohe werden nur berichtet, da sie bei fremden Images meist nicht selbst behebbar sind. |
 | Gitleaks scannt die gesamte Git-Historie | Ein committetes Secret bleibt über den Commit-Hash abrufbar, auch nach dem Löschen der Datei. .gitignore allein schützt nur vor neuen Commits. |
@@ -144,7 +144,9 @@ Ein selbst geschriebener Metrik-Collector (FastAPI), der als Pod im k3s-Cluster 
 | Mitgelieferten Ingress-Controller (Traefik) deaktiviert | k3s installiert Traefik standardmäßig mit, ohne dass man ihn anfordert. Ohne ein einziges Ingress-Objekt belegte er Port 80 und 443 auf allen Interfaces und war damit aus dem Heimnetz erreichbar. Deaktiviert per `--disable=traefik`, weil der Zugriff über Tailscale läuft. Ein ungenutzter Dienst ist Angriffsfläche plus Patch-Aufwand ohne Gegenwert, die installierte Version war bereits zwei Releases hinterher. |
 | kubelet (10250) und k3s-API (6443) lauschen auf allen Interfaces, werden aber von ufw am LAN-Interface verworfen | Geprüft am 25.10.2026 von einem LAN-Gerät: beide laufen ins Timeout, Port 22 antwortet als Positivkontrolle. Die UFW-Logs belegen den DROP auf enp3s0. Anders als bei Docker umgeht k3s die ufw-Regeln hier nicht. Preis: Der Schutz hängt allein an der Paketfilterung, der offene Listener bleibt bestehen. Eine Bindung an tailscale0 wie beim Monitor wäre die zweite Ebene und ist offen. |
 | Third-Party-Actions auf vollen Commit-SHA gepinnt, Version als Kommentar dahinter | Tags sind verschiebbar, Major-Tags wie @v4 wandern bei jedem Release ohnehin weiter. Ein SHA ist unveränderlich, damit läuft nachweislich derselbe Code wie beim letzten Lauf. Grenze: Der SHA friert den Code ein, prüft ihn aber nicht. |
-| Dependabot für github-actions und pip, wöchentlich, mit 5 Tagen Cooldown | Gepinnte Versionen veralten still, deshalb der Gegenpart zum SHA-Pinning. Dependabot öffnet pro Update einen PR statt still zu aktualisieren: Die Änderung ist sichtbar, die CI testet sie vorher, und der Merge bleibt eine bewusste Entscheidung. Der Cooldown lässt frische Releases reifen, weil fehlerhafte oder kompromittierte Versionen meist innerhalb weniger Tage auffallen. |
+| Dependabot für github-actions und pip, wöchentlich, mit 5 Tagen Cooldown | Gepinnte Versionen veralten still, deshalb der Gegenpart zum SHA-Pinning. Dependabot öffnet pro Update einen PR statt still zu aktualisieren: Die Änderung ist sichtbar, die CI testet sie, der Merge bleibt eine Entscheidung. Der Cooldown lässt frische Releases reifen, weil kompromittierte Versionen meist nach wenigen Tagen auffallen. |
+| Secrets-Verschlüsselung im Datastore aktiviert (secrets-encryption: true, AES-CBC) | Ohne sie liegen Kubernetes-Secrets lediglich base64-kodiert im Datastore, also im Klartext für jeden, der an die Datei kommt. Aktiviert am 27.10.2026 auf k3s v1.36.5+k3s1, bestehende Secrets anschließend per secrets-encrypt rotate-keys neu verschlüsselt. Grenze: Der Schlüssel liegt unverschlüsselt in server/cred/ auf demselben Host. Geschützt ist damit ein gestohlenes Laufwerk, eine abgezogene Kopie der state.db oder ein unverschlüsseltes Backup, nicht der Zugriff über die API oder durch root. Preis: Ein Backup des Datastores ist ohne den passenden Schlüssel nicht mehr wiederherstellbar, beides muss gesichert werden. |
+| Server-Flags in /etc/rancher/k3s/config.yaml statt in der systemd-Unit | Die Unit wird vom k3s-Installer geschrieben und bei einem Upgrade überschrieben, eigene Änderungen können dabei still verschwinden. Die config.yaml wird nicht angefasst, ist YAML und damit versionierbar. Preis: Konfiguration liegt vorübergehend an zwei Orten, solange --disable=traefik noch in der Unit steht. CLI-Argumente haben dabei Vorrang vor der Datei. |
 
 
 ## Lessons Learned
@@ -184,6 +186,12 @@ Secrets landen in der Shell-History Ein curl -H "X-API-Key: ..." steht danach in
 k3s bringt Traefik als Ingress-Controller mit. Er lief seit der Installation, belegte Port 80 und 443 auf allen Interfaces und hatte nichts zu tun, weil nie ein Ingress-Objekt angelegt wurde. Aufgefallen erst bei einer Bestandsaufnahme mit `ss -tlnp` statt `ufw status`. Dasselbe Muster wie bei Docker weiter oben: Die eigene Konfiguration sieht sauber aus, die tatsächlich offenen Ports stehen woanders. Die ehrliche Antwort auf "was ist offen" liefert nicht die Firewall-Konfiguration, sondern die Liste der lauschenden Sockets, und der Gegentest von einem anderen Gerät aus.
 
 Ein Image im containerd-Namespace default existiert für k3s nicht – ctr image import legt ohne -n k8s.io im falschen Namespace ab. k3s sucht ausschließlich in k8s.io, findet nichts und fällt auf die Registry zurück. Die Fehlermeldung zeigt dann auf docker.io/library/<name> und klingt nach einem Berechtigungsproblem bei Docker Hub, obwohl das Image lokal längst vorliegt. Gegenprobe ist crictl images: Was dort nicht auftaucht, kann k3s nicht starten.
+
+Encryption Status: Enabled heißt nicht, dass die vorhandenen Secrets verschlüsselt sind. Der Schalter wirkt nur auf neue Schreibvorgänge. Die Zeile, auf die es ankommt, ist Current Rotation Stage: Solange dort start steht, wurde kein bestehender Eintrag angefasst. Erst rotate-keys schreibt sie neu und bringt die Stufe auf reencrypt_finished.
+
+Eine neue Revision ersetzt die alte nicht sofort. kine legt Objektstände als eigene Zeilen ab. Nach der Neuverschlüsselung stand das Secret zweimal im Datastore, einmal verschlüsselt und einmal im Klartext. Dieselbe Struktur wie bei einem committeten Secret in der Git-History: Der aktuelle Stand ist sauber, der alte bleibt abrufbar. Wirksam dagegen ist nur die Rotation des Secrets selbst, nicht das Löschen von Kopien.
+
+
 
 ## Screenshots
 
@@ -263,6 +271,12 @@ Die Worker-Prozesse starten sauber, obwohl das Root-Dateisystem read-only ist. B
 Der Versuch, eine Datei im Container anzulegen, scheitert. Damit kann auch ein Angreifer keinen Schadcode ablegen.
 
 <img width="1047" height="57" alt="Screenshot 2026-10-04 164954" src="https://github.com/user-attachments/assets/29106d88-7403-48c7-9f8e-45c41569ae4b" />
+
+Dieselbe Abfrage vor und nach secrets-encrypt rotate-keys. Einer liegt im Klartext obwohl die Verschlüsselung schon aktiviert war. Der andere lag dann nur noch Verschlüsselt vor.
+
+<img width="1052" height="60" alt="Screenshot 2026-10-27 210008" src="https://github.com/user-attachments/assets/1cf7210a-bd7f-45e9-b7ae-243e21da4147" />
+<img width="1002" height="92" alt="Screenshot 2026-10-27 205951" src="https://github.com/user-attachments/assets/c353bc1e-8506-4408-9125-044fdf1244b1" />
+
 
 ---
 
