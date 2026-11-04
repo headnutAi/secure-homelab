@@ -38,9 +38,9 @@ flowchart LR
             ssh["SSH-Session<br/>auf der Node"]
 
             subgraph k3s["k3s-Cluster"]
-                subgraph np["NetworkPolicy: Ingress + Egress"]
-                    nginx["nginx &#40;Test&#41;<br/>ClusterIP"]
-                end
+                
+                    nginx{{"nginx &#40;Test&#41;<br/>ClusterIP"}}
+                
                 mon["monitor-agent<br/>FastAPI &#124; ClusterIP<br/>&#40;keine Policy&#41;"]
             end
 
