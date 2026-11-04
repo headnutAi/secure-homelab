@@ -41,7 +41,7 @@ flowchart LR
                 
                     nginx["nginx &#40;Test&#41;<br/>ClusterIP"]
                     Networkpolicy{{"ingress + egress"}}
-                    Networkpolicy -,-> |"frontend"| nginx
+                    Networkpolicy -.-> |"frontend"| nginx
                 
                 mon["monitor-agent<br/>FastAPI &#124; ClusterIP<br/>&#40;keine Policy&#41;"]
             end
