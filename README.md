@@ -26,7 +26,7 @@ Ein Ubuntu-Server im Heimnetz betreibt einen k3s-Cluster. Der Router hat keine P
 
 Im Cluster laufen zwei Workloads. Ein gehärteter nginx-Container als Testaufbau und ein selbst geschriebener Monitoring-Agent auf Basis von FastAPI, der CPU-, RAM- und Disk-Werte des Servers ausliest und über eine API-Key-geschützte API bereitstellt. Beide Services sind vom Typ ClusterIP und damit aus dem Heimnetz nicht direkt ansprechbar. Der Code des Agents liegt im separaten Repo [https://github.com/headnutAi/homelab_monitor].
 
-Innerhalb des Clusters regelt eine NetworkPolicy für nginx Ingress und Egress. Der Egress-Teil wiegt schwerer: Er begrenzt, wohin ein kompromittierter Pod überhaupt Verbindungen aufbauen kann.
+Innerhalb des Clusters regelt eine NetworkPolicy für nginx Ingress und Egress. Der Egress-Teil wiegt schwerer: Er begrenzt, wohin ein kompromittierter Pod überhaupt Verbindungen aufbauen kann. Was den Datenabfluss im Falle eines Angriffs verhindern würde.
 
 ```mermaid
 flowchart LR
