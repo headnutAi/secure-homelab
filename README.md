@@ -36,6 +36,7 @@ flowchart LR
         subgraph host["Ubuntu-Server"]
             ts["tailscaled + Serve<br/>TLS, nur /metrics"]
             ssh["SSH-Session<br/>auf der Node"]
+            api["API-Key-Prüfung<br/>&#40;im Agent&#41;"]
 
             subgraph k3s["k3s-Cluster"]
                 
@@ -46,7 +47,8 @@ flowchart LR
                 mon["monitor-agent<br/>FastAPI &#124; ClusterIP<br/>&#40;keine Policy&#41;"]
             end
 
-            ts -->|"/metrics"| mon
+            ts -->|"/metrics"| api
+            api --> |"/metrics"| mon
             ssh -.->|"curl, nur lokal"| nginx
         end
     end
