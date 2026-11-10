@@ -36,10 +36,9 @@ flowchart LR
         subgraph host["Ubuntu-Server"]
             ts["tailscaled + Serve<br/>TLS, nur /metrics"]
             ssh["SSH-Session<br/>auf der Node"]
-            api["API-Key-Prüfung<br/>&#40;im Agent&#41;"]
-
+            
             subgraph k3s["k3s-Cluster"]
-                
+                api["API-Key-Prüfung<br/>&#40;im Agent&#41;"]
                     nginx["nginx &#40;Test&#41;<br/>ClusterIP"]
                     Networkpolicy{{"ingress + egress"}}
                     Networkpolicy -.-> |"frontend"| nginx
@@ -48,7 +47,7 @@ flowchart LR
             end
 
             ts -->|"/metrics"| api
-            api --> |"/metrics"| mon
+            api --> |"401 oder 200"| mon
             ssh -.->|"curl, nur lokal"| nginx
         end
     end
