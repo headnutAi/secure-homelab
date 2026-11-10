@@ -40,8 +40,8 @@ flowchart LR
             subgraph k3s["k3s-Cluster"]
                 api["API-Key-Prüfung<br/>&#40;im Agent&#41;"]
                     nginx["nginx &#40;Test&#41;<br/>ClusterIP"]
-                    Networkpolicy{{"ingress + egress"}}
-                    Networkpolicy -.-> |"frontend"| nginx
+                    Networkpolicy{{"frontend-isolation, ingress + egress app=frontend"}}
+                    Networkpolicy -.-> |"wirkt auf"| nginx
                 
                 mon["monitor-agent<br/>FastAPI &#124; ClusterIP<br/>&#40;keine Policy&#41;"]
             end
