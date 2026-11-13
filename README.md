@@ -33,7 +33,7 @@ flowchart LR
     client["Client<br/>Browser im Tailnet"]
 
     subgraph home["Heimnetz &#40;keine Portfreigabe im Router&#41;"]
-    device["Windows-Rechner 192.168.1.164"]
+        device["Windows-Rechner 192.168.1.164"]
         subgraph host["Ubuntu-Server"]
             ts["tailscaled + Serve<br/>TLS, nur /metrics"]
             ssh["SSH-Session<br/>auf der Node"]
@@ -46,13 +46,13 @@ flowchart LR
                 
                 mon["monitor-agent<br/>FastAPI &#124; ClusterIP<br/>&#40;keine Policy&#41;"]
             end
-            device -->|"ufw port 22"| host
+            
             ts -->|"/metrics"| api
             api --> |"401 oder 200"| mon
             ssh -.->|"curl, nur lokal"| nginx
         end
     end
-
+    device -->|"ufw port 22"| host
     client -->|"HTTPS via WireGuard"| ts
     client -.->|"SSH via Tailscale"| ssh
 ```
