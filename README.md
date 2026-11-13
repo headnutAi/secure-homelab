@@ -56,7 +56,7 @@ flowchart LR
     device -->|"22 ssh"| ufw
     device --x|"10250 kubelet"| ufw
     device --x|"6443 k3s-API"| ufw
-    ufw -->|"ssh verbindung"| host
+    ufw -->|"ssh verbindung"| ssh
     client -->|"HTTPS via WireGuard"| ts
     client -.->|"SSH via Tailscale"| ssh
 ```
