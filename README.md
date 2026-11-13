@@ -33,7 +33,7 @@ flowchart LR
     client["Client<br/>Browser im Tailnet"]
 
     subgraph home["Heimnetz &#40;keine Portfreigabe im Router&#41;"]
-        device["Windows-Rechner 192.168.1.164"]
+    device["Windows-Rechner 192.168.1.164"]
         subgraph host["Ubuntu-Server"]
             ts["tailscaled + Serve<br/>TLS, nur /metrics"]
             ssh["SSH-Session<br/>auf der Node"]
