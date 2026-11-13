@@ -34,8 +34,8 @@ flowchart LR
 
     subgraph home["Heimnetz &#40;keine Portfreigabe im Router&#41;"]
         device["Windows-Rechner 192.168.1.164"]
-        ufw["Eine ufw die nur port 22 druchlässt"]
         subgraph host["Ubuntu-Server"]
+            ufw["Eine ufw die nur port 22 durchlässt"]
             ts["tailscaled + Serve<br/>TLS, nur /metrics"]
             ssh["SSH-Session<br/>auf der Node"]
             
