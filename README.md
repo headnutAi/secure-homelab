@@ -34,6 +34,7 @@ flowchart LR
 
     subgraph home["Heimnetz &#40;keine Portfreigabe im Router&#41;"]
         device["Windows-Rechner 192.168.1.164"]
+        ufw["Eine ufw die nur port 22 druchlässt"]
         subgraph host["Ubuntu-Server"]
             ts["tailscaled + Serve<br/>TLS, nur /metrics"]
             ssh["SSH-Session<br/>auf der Node"]
@@ -52,9 +53,10 @@ flowchart LR
             ssh -.->|"curl, nur lokal"| nginx
         end
     end
-    device -->|"ufw lässt auf port 22 durch"| host
-    device --x|"10250 kubelet"| host
-    device --x|"6443 k3s-API"| host
+    device -->|"22 ssh"| ufw
+    device --x|"10250 kubelet"| ufw
+    device --x|"6443 k3s-API"| ufw
+    ufw -->|"ssh verbindung"| host
     client -->|"HTTPS via WireGuard"| ts
     client -.->|"SSH via Tailscale"| ssh
 ```
