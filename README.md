@@ -52,7 +52,9 @@ flowchart LR
             ssh -.->|"curl, nur lokal"| nginx
         end
     end
-    device -->|"ufw port 22"| host
+    device -->|"ufw lässt auf port 22 durch"| host
+    device --x|"10250 kubelet"| ziel
+    device --x|"6443 k3s-API"| ziel
     client -->|"HTTPS via WireGuard"| ts
     client -.->|"SSH via Tailscale"| ssh
 ```
