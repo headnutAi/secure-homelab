@@ -32,7 +32,7 @@ Innerhalb des Clusters regelt eine NetworkPolicy für nginx Ingress und Egress. 
 flowchart LR
     client["Client<br/>Browser im Tailnet"]
 
-    subgraph home["Heimnetz &#40;keine Portfreigabe im Router&#41;"]
+    subgraph home["Heimnetz LAN kein port forwarding"]
         device["Windows-Rechner 192.168.1.164"]
         subgraph host["Ubuntu-Server"]
             ufw["Eine ufw die nur port 22 durchlässt"]
